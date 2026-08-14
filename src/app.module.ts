@@ -5,11 +5,6 @@ import { AuthModule } from './auth/auth.module';
 import { CloudinaryModule } from './common/cloudinary/cloudinary.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    PrismaModule,
-    AuthModule,
-    CloudinaryModule,
-  ],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, CloudinaryModule],
 })
 export class AppModule {}

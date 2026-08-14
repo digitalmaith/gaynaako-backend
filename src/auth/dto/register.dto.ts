@@ -1,4 +1,3 @@
-// src/auth/dto/register.dto.ts
 import {
   IsEmail,
   IsEnum,
@@ -7,7 +6,7 @@ import {
   MinLength,
   ValidateIf,
 } from 'class-validator';
-import { Role } from '@prisma/client';
+import { Role } from '../../generated/prisma/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class RegisterDto {
