@@ -71,11 +71,7 @@ Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.`;
     }
   }
 
-  async sendOtpEmail(
-    to: string,
-    code: string,
-    firstName?: string,
-  ): Promise<void> {
+  async sendOtpEmail(to: string, code: string, firstName?: string): Promise<void> {
     await this.send(
       to,
       'Vérification de votre compte Gaynaako Opportunity Agent',
@@ -85,11 +81,7 @@ Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.`;
     );
   }
 
-  async sendPasswordResetEmail(
-    to: string,
-    code: string,
-    firstName?: string,
-  ): Promise<void> {
+  async sendPasswordResetEmail(to: string, code: string, firstName?: string): Promise<void> {
     await this.send(
       to,
       'Réinitialisation de votre mot de passe',

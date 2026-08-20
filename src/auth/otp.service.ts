@@ -1,3 +1,4 @@
+// src/auth/otp.service.ts
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { OtpRepository } from './repositories/otp.repository';
@@ -12,9 +13,7 @@ export class OtpService {
   constructor(private readonly otpRepository: OtpRepository) {}
 
   private generateCode(): string {
-    return Math.floor(100000 + Math.random() * 900000)
-      .toString()
-      .slice(0, OTP_LENGTH);
+    return Math.floor(100000 + Math.random() * 900000).toString().slice(0, OTP_LENGTH);
   }
 
   async createOtp(email: string, purpose: OtpPurpose): Promise<string> {
@@ -31,20 +30,15 @@ export class OtpService {
   async verifyOtp(email: string, purpose: OtpPurpose, code: string): Promise<void> {
     const otp = await this.otpRepository.findLatestActive(email, purpose);
 
-    if (!otp) {
-      throw new BadRequestException('Aucun code de vérification actif');
-    }
-
+    if (!otp) throw new BadRequestException('Aucun code de vérification actif');
     if (otp.expiresAt < new Date()) {
       throw new UnauthorizedException('Code expiré, demandez-en un nouveau');
     }
-
     if (otp.attempts >= MAX_ATTEMPTS) {
       throw new UnauthorizedException('Trop de tentatives, demandez un nouveau code');
     }
 
     const isValid = await bcrypt.compare(code, otp.codeHash);
-
     if (!isValid) {
       await this.otpRepository.incrementAttempts(otp.id);
       throw new UnauthorizedException('Code invalide');

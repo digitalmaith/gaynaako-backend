@@ -1,3 +1,4 @@
+// src/auth/auth.module.ts
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -6,7 +7,8 @@ import { AuthController } from './auth.controller';
 import { CloudinaryModule } from '../common/cloudinary/cloudinary.module';
 import { MailModule } from '../common/mail/mail.module';
 import { OtpService } from './otp.service';
-import { UserRepository } from './repositories/user.repository';
+import { ProfileValidator } from './profile-validator.util';
+import { UtilisateurRepository } from './repositories/utilisateur.repository';
 import { PendingRegistrationRepository } from './repositories/pending-registration.repository';
 import { OtpRepository } from './repositories/otp.repository';
 
@@ -29,10 +31,11 @@ import { OtpRepository } from './repositories/otp.repository';
   providers: [
     AuthService,
     OtpService,
-    UserRepository,
+    ProfileValidator,
+    UtilisateurRepository,
     PendingRegistrationRepository,
     OtpRepository,
   ],
-  exports: [AuthService, UserRepository],
+  exports: [AuthService, UtilisateurRepository],
 })
 export class AuthModule {}

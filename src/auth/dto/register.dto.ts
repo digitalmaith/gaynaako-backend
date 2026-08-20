@@ -1,13 +1,11 @@
-import {
-  IsEmail,
-  IsEnum,
-  IsOptional,
-  IsString,
-  MinLength,
-  ValidateIf,
-} from 'class-validator';
-import { Role } from '../../generated/prisma/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+
+export enum RegisterRole {
+  ENTREPRENEUR = 'ENTREPRENEUR',
+  PME = 'PME',
+  ONG = 'ONG',
+}
 
 export class RegisterDto {
   @ApiProperty()
@@ -19,22 +17,28 @@ export class RegisterDto {
   @MinLength(8)
   password!: string;
 
-  @ApiProperty({ enum: Role })
-  @IsEnum(Role)
-  role!: Role;
+  @ApiProperty({ enum: RegisterRole })
+  @IsEnum(RegisterRole)
+  role!: RegisterRole;
 
-  @ApiPropertyOptional()
+  // --- Entrepreneur ---
+  @ApiPropertyOptional() @IsOptional() @IsString() secteurActivite?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() pays?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() domaineExpertise?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() objectifs?: string;
+
+  // --- PME ---
+  @ApiPropertyOptional() @IsOptional() @IsString() nomEntreprise?: string;
+  @ApiPropertyOptional({ description: 'Séparés par des virgules' })
   @IsOptional()
   @IsString()
-  firstName?: string;
+  secteursActivite?: string;
 
-  @ApiPropertyOptional()
+  // --- ONG ---
+  @ApiPropertyOptional() @IsOptional() @IsString() nomOrganisation?: string;
+  @ApiPropertyOptional({ description: 'Séparés par des virgules' })
   @IsOptional()
   @IsString()
-  lastName?: string;
-
-  @ApiPropertyOptional()
-  @ValidateIf((o: RegisterDto) => o.role === Role.PME || o.role === Role.ONG)
-  @IsString()
-  organizationName?: string;
+  domainesIntervention?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() mission?: string;
 }

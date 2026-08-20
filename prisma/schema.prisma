@@ -8,11 +8,21 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum RoleUtilisateur {
   ENTREPRENEUR
   PME
   ONG
-  ADMIN
+  ADMINISTRATEUR
+}
+
+enum StatutUtilisateur {
+  EN_ATTENTE
+  ACTIF
+  SUSPENDU
 }
 
 enum OtpPurpose {
@@ -20,37 +30,64 @@ enum OtpPurpose {
   PASSWORD_RESET
 }
 
-model User {
-  id               String   @id @default(uuid())
-  email            String   @unique
-  password         String
-  role             Role
-  firstName        String?
-  lastName         String?
-  organizationName String?
-  logoUrl          String?
-  isActive         Boolean  @default(true)
-  isEmailVerified  Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@map("users")
+enum TypeOpportunite {
+  FINANCEMENT
+  SUBVENTION
+  APPEL_OFFRE
+  CONCOURS
+  PROGRAMME_ACCELERATION
 }
 
+enum StatutCandidature {
+  BROUILLON
+  SOUMISE
+  EN_COURS
+  ACCEPTEE
+  REJETEE
+}
+
+enum TypeEmetteur {
+  SITE_WEB
+  API
+  RESEAU_SOCIAL
+  PORTAIL_INSTITUTIONNEL
+}
+
+enum StatutEmetteur {
+  ACTIF
+  INACTIF
+}
+
+enum CanalNotification {
+  EMAIL
+  WHATSAPP
+}
+
+enum Expediteur {
+  UTILISATEUR
+  BOT
+}
+
+// ============================================================
+// INSCRIPTION (staging avant validation OTP)
+// ============================================================
+
 model PendingRegistration {
-  id               String   @id @default(uuid())
-  email            String   @unique
-  passwordHash     String
-  role             Role
-  firstName        String?
-  lastName         String?
-  organizationName String?
-  logoUrl          String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id            String          @id @default(uuid())
+  email         String          @unique
+  motDePasse    String
+  role          RoleUtilisateur
+  // Champs specifiques au role, valides par DTO avant stockage
+  donneesProfil Json
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   @@map("pending_registrations")
 }
+
+// ============================================================
+// OTP (verification email + reset mot de passe)
+// ============================================================
 
 model OtpVerification {
   id        String     @id @default(uuid())
@@ -64,4 +101,232 @@ model OtpVerification {
 
   @@index([email, purpose])
   @@map("otp_verifications")
+}
+
+// ============================================================
+// UTILISATEUR (table commune) + profils de specialisation 1-1
+// ============================================================
+
+model Utilisateur {
+  id           String            @id @default(uuid())
+  email        String            @unique
+  motDePasse   String
+  role         RoleUtilisateur
+  statut       StatutUtilisateur @default(ACTIF)
+  dateCreation DateTime          @default(now())
+
+  entrepreneur   EntrepreneurProfile?
+  pme            PmeProfile?
+  ong            OngProfile?
+  administrateur AdministrateurProfile?
+
+  candidatures    Candidature[]
+  favoris         Favori[]
+  recommandations Recommandation[]
+  conversations   ChatbotConversation[]
+  notifications   Notification[]
+
+  @@map("utilisateurs")
+}
+
+model EntrepreneurProfile {
+  id               String      @id @default(uuid())
+  utilisateurId    String      @unique
+  utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  secteurActivite  String
+  pays             String
+  domaineExpertise String
+  objectifs        String?
+
+  @@map("entrepreneur_profiles")
+}
+
+model PmeProfile {
+  id               String      @id @default(uuid())
+  utilisateurId    String      @unique
+  utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  nomEntreprise    String
+  secteursActivite String[]
+  logoUrl          String?
+
+  @@map("pme_profiles")
+}
+
+model OngProfile {
+  id                   String      @id @default(uuid())
+  utilisateurId        String      @unique
+  utilisateur          Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  nomOrganisation      String
+  domainesIntervention String[]
+  mission              String?
+  logoUrl              String?
+
+  @@map("ong_profiles")
+}
+
+model AdministrateurProfile {
+  id            String      @id @default(uuid())
+  utilisateurId String      @unique
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  niveauAcces   String      @default("STANDARD")
+
+  opportunitesGerees Opportunite[]     @relation("AdminGereOpportunite")
+  emetteurs          Emetteur[]
+  journaux           JournalActivite[]
+
+  @@map("administrateur_profiles")
+}
+
+// ============================================================
+// OPPORTUNITES & COLLECTE IA
+// ============================================================
+
+model Secteur {
+  id           String        @id @default(uuid())
+  nom          String        @unique
+  opportunites Opportunite[]
+
+  @@map("secteurs")
+}
+
+model Emetteur {
+  id                String         @id @default(uuid())
+  nom               String
+  url               String
+  type              TypeEmetteur
+  frequenceCollecte String
+  dernierScan       DateTime?
+  statut            StatutEmetteur @default(ACTIF)
+
+  administrateurId String
+  administrateur   AdministrateurProfile @relation(fields: [administrateurId], references: [id])
+
+  opportunites Opportunite[]
+
+  @@map("emetteurs")
+}
+
+model Opportunite {
+  id                  String          @id @default(uuid())
+  titre               String
+  type                TypeOpportunite
+  pays                String
+  dateLimite          DateTime
+  criteresEligibilite String?
+  dateCreation        DateTime        @default(now())
+
+  secteurId String
+  secteur   Secteur @relation(fields: [secteurId], references: [id])
+
+  emetteurId String?
+  emetteur   Emetteur? @relation(fields: [emetteurId], references: [id])
+
+  administrateurId String?
+  administrateur   AdministrateurProfile? @relation("AdminGereOpportunite", fields: [administrateurId], references: [id])
+
+  candidatures    Candidature[]
+  favoris         Favori[]
+  recommandations Recommandation[]
+
+  @@map("opportunites")
+}
+
+// ============================================================
+// INTERACTIONS UTILISATEUR
+// ============================================================
+
+model Candidature {
+  id             String            @id @default(uuid())
+  statut         StatutCandidature @default(BROUILLON)
+  dateSoumission DateTime?
+  dateCreation   DateTime          @default(now())
+
+  utilisateurId String
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  opportuniteId String
+  opportunite   Opportunite @relation(fields: [opportuniteId], references: [id], onDelete: Cascade)
+
+  @@unique([utilisateurId, opportuniteId])
+  @@map("candidatures")
+}
+
+model Favori {
+  id        String   @id @default(uuid())
+  dateAjout DateTime @default(now())
+
+  utilisateurId String
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  opportuniteId String
+  opportunite   Opportunite @relation(fields: [opportuniteId], references: [id], onDelete: Cascade)
+
+  @@unique([utilisateurId, opportuniteId])
+  @@map("favoris")
+}
+
+model Recommandation {
+  id              String   @id @default(uuid())
+  scorePertinence Float
+  dateGeneration  DateTime @default(now())
+
+  utilisateurId String
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  opportuniteId String
+  opportunite   Opportunite @relation(fields: [opportuniteId], references: [id], onDelete: Cascade)
+
+  @@map("recommandations")
+}
+
+model ChatbotConversation {
+  id        String   @id @default(uuid())
+  dateDebut DateTime @default(now())
+
+  utilisateurId String
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  messages ChatMessage[]
+
+  @@map("chatbot_conversations")
+}
+
+model ChatMessage {
+  id         String     @id @default(uuid())
+  contenu    String
+  expediteur Expediteur
+  horodatage DateTime   @default(now())
+
+  conversationId String
+  conversation   ChatbotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+model Notification {
+  id        String            @id @default(uuid())
+  canal     CanalNotification
+  contenu   String
+  dateEnvoi DateTime          @default(now())
+  envoyee   Boolean           @default(false)
+
+  utilisateurId String
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ============================================================
+// ADMINISTRATION
+// ============================================================
+
+model JournalActivite {
+  id        String   @id @default(uuid())
+  action    String
+  dateHeure DateTime @default(now())
+
+  administrateurId String
+  administrateur   AdministrateurProfile @relation(fields: [administrateurId], references: [id])
+
+  @@map("journaux_activite")
 }

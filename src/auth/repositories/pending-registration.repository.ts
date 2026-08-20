@@ -1,15 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
+import { RoleUtilisateur } from '../../generated/prisma/enums';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Role } from '../../generated/prisma/enums';
 
 export interface UpsertPendingRegistrationData {
   email: string;
-  passwordHash: string;
-  role: Role;
-  firstName?: string | null;
-  lastName?: string | null;
-  organizationName?: string | null;
-  logoUrl?: string | null;
+  motDePasse: string;
+  role: RoleUtilisateur;
+  donneesProfil: Prisma.InputJsonValue;
 }
 
 @Injectable()
@@ -25,12 +23,9 @@ export class PendingRegistrationRepository {
       where: { email: data.email },
       create: data,
       update: {
-        passwordHash: data.passwordHash,
+        motDePasse: data.motDePasse,
         role: data.role,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        organizationName: data.organizationName,
-        logoUrl: data.logoUrl,
+        donneesProfil: data.donneesProfil,
       },
     });
   }

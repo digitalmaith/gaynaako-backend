@@ -6,9 +6,9 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
-import type { FastifyRequest } from 'fastify';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import type { FastifyRequest } from 'fastify';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -21,13 +21,19 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        email: { type: 'string', example: 'test@example.com' },
-        password: { type: 'string', example: 'password123' },
-        role: { type: 'string', enum: ['ENTREPRENEUR', 'PME', 'ONG', 'ADMIN'] },
-        firstName: { type: 'string' },
-        lastName: { type: 'string' },
-        organizationName: { type: 'string' },
-        logo: { type: 'string', format: 'binary' },
+        email: { type: 'string' },
+        password: { type: 'string' },
+        role: { type: 'string', enum: ['ENTREPRENEUR', 'PME', 'ONG'] },
+        secteurActivite: { type: 'string', description: 'Entrepreneur' },
+        pays: { type: 'string', description: 'Entrepreneur' },
+        domaineExpertise: { type: 'string', description: 'Entrepreneur' },
+        objectifs: { type: 'string', description: 'Entrepreneur (optionnel)' },
+        nomEntreprise: { type: 'string', description: 'PME' },
+        secteursActivite: { type: 'string', description: 'PME — ex: "Agro,Tech"' },
+        nomOrganisation: { type: 'string', description: 'ONG' },
+        domainesIntervention: { type: 'string', description: 'ONG — ex: "Santé,Éducation"' },
+        mission: { type: 'string', description: 'ONG (optionnel)' },
+        logo: { type: 'string', format: 'binary', description: 'PME / ONG' },
       },
       required: ['email', 'password', 'role'],
     },
