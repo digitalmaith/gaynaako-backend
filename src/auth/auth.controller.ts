@@ -1,5 +1,5 @@
 // src/auth/auth.controller.ts
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -8,12 +8,19 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { CheckEmailDto } from './dto/check-email.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import type { FastifyRequest } from 'fastify';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('check-email')
+  async checkEmailAvailability(@Query() dto: CheckEmailDto) {
+    return this.authService.checkEmailAvailability(dto.email);
+  }
 
   @Post('register')
   @ApiConsumes('multipart/form-data')
@@ -24,14 +31,14 @@ export class AuthController {
         email: { type: 'string' },
         password: { type: 'string' },
         role: { type: 'string', enum: ['ENTREPRENEUR', 'PME', 'ONG'] },
-        secteurActivite: { type: 'string', description: 'Entrepreneur' },
-        pays: { type: 'string', description: 'Entrepreneur' },
+        secteurId: { type: 'string', description: 'Entrepreneur' },
+        paysId: { type: 'string', description: 'Entrepreneur' },
         domaineExpertise: { type: 'string', description: 'Entrepreneur' },
         objectifs: { type: 'string', description: 'Entrepreneur (optionnel)' },
         nomEntreprise: { type: 'string', description: 'PME' },
-        secteursActivite: { type: 'string', description: 'PME — ex: "Agro,Tech"' },
+        secteurIds: { type: 'string', description: 'PME — UUIDs séparés par virgules' },
         nomOrganisation: { type: 'string', description: 'ONG' },
-        domainesIntervention: { type: 'string', description: 'ONG — ex: "Santé,Éducation"' },
+        domaineInterventionIds: { type: 'string', description: 'ONG — UUIDs séparés par virgules' },
         mission: { type: 'string', description: 'ONG (optionnel)' },
         logo: { type: 'string', format: 'binary', description: 'PME / ONG' },
       },
@@ -68,6 +75,16 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
+  }
+
+  @Post('refresh')
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto.refreshToken);
+  }
+
+  @Post('logout')
+  async logout(@Body() dto: RefreshTokenDto) {
+    return this.authService.logout(dto.refreshToken);
   }
 
   @Post('forgot-password')

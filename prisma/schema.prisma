@@ -72,6 +72,19 @@ enum Expediteur {
 // INSCRIPTION (staging avant validation OTP)
 // ============================================================
 
+model RefreshToken {
+  id            String      @id @default(uuid())
+  tokenHash     String      @unique
+  utilisateurId String
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+  revoked       Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+
+  @@index([utilisateurId])
+  @@map("refresh_tokens")
+}
+
 model PendingRegistration {
   id            String          @id @default(uuid())
   email         String          @unique
@@ -125,16 +138,23 @@ model Utilisateur {
   recommandations Recommandation[]
   conversations   ChatbotConversation[]
   notifications   Notification[]
+  refreshTokens RefreshToken[]
 
   @@map("utilisateurs")
 }
+
 
 model EntrepreneurProfile {
   id               String      @id @default(uuid())
   utilisateurId    String      @unique
   utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  secteurActivite  String
-  pays             String
+
+  secteurId String
+  secteur   Secteur @relation(fields: [secteurId], references: [id])
+
+  paysId String
+  pays   Pays   @relation(fields: [paysId], references: [id])
+
   domaineExpertise String
   objectifs        String?
 
@@ -142,22 +162,22 @@ model EntrepreneurProfile {
 }
 
 model PmeProfile {
-  id               String      @id @default(uuid())
-  utilisateurId    String      @unique
-  utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  nomEntreprise    String
-  secteursActivite String[]
-  logoUrl          String?
+  id            String      @id @default(uuid())
+  utilisateurId String      @unique
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  nomEntreprise String
+  secteurs      Secteur[]
+  logoUrl       String?
 
   @@map("pme_profiles")
 }
 
 model OngProfile {
-  id                   String      @id @default(uuid())
-  utilisateurId        String      @unique
-  utilisateur          Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  id                   String                @id @default(uuid())
+  utilisateurId        String                @unique
+  utilisateur          Utilisateur           @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
   nomOrganisation      String
-  domainesIntervention String[]
+  domainesIntervention DomaineIntervention[]
   mission              String?
   logoUrl              String?
 
@@ -185,6 +205,9 @@ model Secteur {
   id           String        @id @default(uuid())
   nom          String        @unique
   opportunites Opportunite[]
+
+  entrepreneurs EntrepreneurProfile[]
+  pmes          PmeProfile[]
 
   @@map("secteurs")
 }
@@ -330,3 +353,22 @@ model JournalActivite {
 
   @@map("journaux_activite")
 }
+
+// Nouveaux modèles référentiels
+model Pays {
+  id            String                 @id @default(uuid())
+  nom           String                 @unique
+  code          String?                @unique // ISO 3166-1 alpha-2, ex: "SN"
+  entrepreneurs EntrepreneurProfile[]
+
+  @@map("pays")
+}
+
+model DomaineIntervention {
+  id   String       @id @default(uuid())
+  nom  String       @unique
+  ongs OngProfile[]
+
+  @@map("domaines_intervention")
+}
+

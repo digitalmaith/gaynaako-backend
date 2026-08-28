@@ -8,9 +8,11 @@ import { CloudinaryModule } from '../common/cloudinary/cloudinary.module';
 import { MailModule } from '../common/mail/mail.module';
 import { OtpService } from './otp.service';
 import { ProfileValidator } from './profile-validator.util';
+import { RefreshTokenGenerator } from './refresh-token.util';
 import { UtilisateurRepository } from './repositories/utilisateur.repository';
 import { PendingRegistrationRepository } from './repositories/pending-registration.repository';
 import { OtpRepository } from './repositories/otp.repository';
+import { RefreshTokenRepository } from './repositories/refresh-token.repository';
 
 @Module({
   imports: [
@@ -22,7 +24,7 @@ import { OtpRepository } from './repositories/otp.repository';
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: config.get<string>('JWT_EXPIRES_IN', '1d') as unknown as number,
+          expiresIn: config.get<string>('JWT_EXPIRES_IN', '15m') as unknown as number,
         },
       }),
     }),
@@ -32,9 +34,11 @@ import { OtpRepository } from './repositories/otp.repository';
     AuthService,
     OtpService,
     ProfileValidator,
+    RefreshTokenGenerator,
     UtilisateurRepository,
     PendingRegistrationRepository,
     OtpRepository,
+    RefreshTokenRepository,
   ],
   exports: [AuthService, UtilisateurRepository],
 })

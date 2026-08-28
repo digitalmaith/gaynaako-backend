@@ -19,7 +19,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "lint": "eslint \"{src,test}/**/*.ts\"",
-    "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix"
+    "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.0",
@@ -70,6 +71,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.23.12",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },

@@ -1,17 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMinSize, IsArray, IsOptional, IsString, MinLength } from 'class-validator';
+import { ArrayMinSize, IsArray, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class PmeProfileDto {
   @ApiProperty()
   @IsString()
-  @MinLength(2)
   nomEntreprise!: string;
 
-  @ApiProperty({ type: [String] })
+  @ApiProperty({
+    type: [String],
+    description: 'UUIDs des secteurs (voir GET /reference/secteurs)',
+  })
   @IsArray()
   @ArrayMinSize(1)
-  @IsString({ each: true })
-  secteursActivite!: string[];
+  @IsUUID('4', { each: true })
+  secteurIds!: string[];
 
   @ApiPropertyOptional()
   @IsOptional()

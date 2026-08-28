@@ -1,17 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMinSize, IsArray, IsOptional, IsString, MinLength } from 'class-validator';
+import { ArrayMinSize, IsArray, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class OngProfileDto {
   @ApiProperty()
   @IsString()
-  @MinLength(2)
   nomOrganisation!: string;
 
-  @ApiProperty({ type: [String] })
+  @ApiProperty({
+    type: [String],
+    description: 'UUIDs des domaines (voir GET /reference/domaines-intervention)',
+  })
   @IsArray()
   @ArrayMinSize(1)
-  @IsString({ each: true })
-  domainesIntervention!: string[];
+  @IsUUID('4', { each: true })
+  domaineInterventionIds!: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
