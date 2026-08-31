@@ -7,7 +7,7 @@ import { PmeProfileDto } from './dto/profiles/pme-profile.dto';
 import { OngProfileDto } from './dto/profiles/ong-profile.dto';
 import { RegisterRole } from './dto/register.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '../../generated/prisma';
+import { Prisma } from '../generated/prisma/client';
 
 @Injectable()
 export class ProfileValidator {

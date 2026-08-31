@@ -1,6 +1,6 @@
 // src/auth/refresh-token.util.ts
 import { Injectable } from '@nestjs/common';
-import * as crypto from 'crypto';
+import * as crypto from 'node:crypto';
 
 const REFRESH_TOKEN_BYTES = 64;
 
