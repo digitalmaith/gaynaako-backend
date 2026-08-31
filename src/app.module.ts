@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CloudinaryModule } from './common/cloudinary/cloudinary.module';
 import { ReferenceModule } from './reference/reference.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ReferenceModule } from './reference/reference.module';
     AuthModule,
     CloudinaryModule,
     ReferenceModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

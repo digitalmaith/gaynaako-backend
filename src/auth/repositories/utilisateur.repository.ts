@@ -1,6 +1,7 @@
 // src/auth/repositories/utilisateur.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RoleUtilisateur, StatutUtilisateur } from '../../generated/prisma/enums';
 
 interface EntrepreneurProfileInput {
   secteurId: string;
@@ -40,6 +41,14 @@ const PROFILE_INCLUDE = {
   administrateur: true,
 } as const;
 
+export interface ListUsersFilters {
+  role?: RoleUtilisateur;
+  statut?: StatutUtilisateur;
+  search?: string;
+  skip: number;
+  take: number;
+}
+
 @Injectable()
 export class UtilisateurRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -66,11 +75,55 @@ export class UtilisateurRepository {
     });
   }
 
+  findAdministrateurProfileByUtilisateurId(utilisateurId: string) {
+    return this.prisma.administrateurProfile.findUnique({
+      where: { utilisateurId },
+    });
+  }
+
   updateMotDePasse(email: string, motDePasse: string) {
     return this.prisma.utilisateur.update({
       where: { email },
       data: { motDePasse },
     });
+  }
+
+  updateStatut(id: string, statut: StatutUtilisateur) {
+    return this.prisma.utilisateur.update({
+      where: { id },
+      data: { statut },
+      include: PROFILE_INCLUDE,
+    });
+  }
+  deleteById(id: string) {
+    return this.prisma.utilisateur.delete({ where: { id } });
+  }
+
+  private buildWhere(filters: Pick<ListUsersFilters, 'role' | 'statut' | 'search'>) {
+    return {
+      ...(filters.role ? { role: filters.role } : {}),
+      ...(filters.statut ? { statut: filters.statut } : {}),
+      ...(filters.search
+        ? { email: { contains: filters.search, mode: 'insensitive' as const } }
+        : {}),
+    };
+  }
+
+  async findManyPaginated(filters: ListUsersFilters) {
+    const where = this.buildWhere(filters);
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.utilisateur.findMany({
+        where,
+        include: PROFILE_INCLUDE,
+        orderBy: { dateCreation: 'desc' },
+        skip: filters.skip,
+        take: filters.take,
+      }),
+      this.prisma.utilisateur.count({ where }),
+    ]);
+
+    return { items, total };
   }
 
   async createWithProfile(email: string, motDePasse: string, input: ProfileInput) {

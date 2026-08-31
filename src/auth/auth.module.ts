@@ -13,11 +13,14 @@ import { UtilisateurRepository } from './repositories/utilisateur.repository';
 import { PendingRegistrationRepository } from './repositories/pending-registration.repository';
 import { OtpRepository } from './repositories/otp.repository';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository';
+import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
     CloudinaryModule,
     MailModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -39,6 +42,7 @@ import { RefreshTokenRepository } from './repositories/refresh-token.repository'
     PendingRegistrationRepository,
     OtpRepository,
     RefreshTokenRepository,
+    JwtStrategy,
   ],
   exports: [AuthService, UtilisateurRepository],
 })

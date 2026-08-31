@@ -1,7 +1,8 @@
 import 'dotenv/config';
 
-import { PrismaClient } from '../src/generated/prisma/client';
+import { PrismaClient, RoleUtilisateur, StatutUtilisateur } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import * as bcrypt from 'bcrypt';
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -69,6 +70,31 @@ const DOMAINES_INTERVENTION = [
   "Aide humanitaire d'urgence",
 ];
 
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@gaynaako.test';
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'Admin123!';
+async function seedAdmin() {
+  const motDePasseHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+
+  const admin = await prisma.utilisateur.upsert({
+    where: { email: ADMIN_EMAIL },
+    create: {
+      email: ADMIN_EMAIL,
+      motDePasse: motDePasseHash,
+      role: RoleUtilisateur.ADMINISTRATEUR,
+      statut: StatutUtilisateur.ACTIF,
+      administrateur: {
+        create: {
+          niveauAcces: 'SUPER_ADMIN',
+        },
+      },
+    },
+    update: {},
+    include: { administrateur: true },
+  });
+
+  console.log(`✅ Administrateur de test prêt : ${admin.email} / ${ADMIN_PASSWORD}`);
+}
+
 async function main() {
   await Promise.all(
     PAYS.map((p) =>
@@ -99,6 +125,8 @@ async function main() {
       }),
     ),
   );
+
+  await seedAdmin();
 
   console.log('✅ Référentiels peuplés (pays, secteurs, domaines).');
 }
