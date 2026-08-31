@@ -46,17 +46,9 @@ export class ProfileValidator {
           objectifs: raw.objectifs,
         });
 
-        await this.assertExists(
-          'secteur',
-          [dto.secteurId as string],
-          'Secteur',
-        );
+        await this.assertExists('secteur', [dto.secteurId as string], 'Secteur');
 
-        await this.assertExists(
-          'pays',
-          [dto.paysId as string],
-          'Pays',
-        );
+        await this.assertExists('pays', [dto.paysId as string], 'Pays');
 
         return dto;
       }
@@ -68,11 +60,7 @@ export class ProfileValidator {
           logoUrl,
         });
 
-        await this.assertExists(
-          'secteur',
-          dto.secteurIds as string[],
-          'Secteur',
-        );
+        await this.assertExists('secteur', dto.secteurIds as string[], 'Secteur');
 
         return dto;
       }
@@ -80,9 +68,7 @@ export class ProfileValidator {
       case RegisterRole.ONG: {
         const dto = await this.validateDto(OngProfileDto, {
           nomOrganisation: raw.nomOrganisation,
-          domaineInterventionIds: this.splitList(
-            raw.domaineInterventionIds,
-          ),
+          domaineInterventionIds: this.splitList(raw.domaineInterventionIds),
           mission: raw.mission,
           logoUrl,
         });
@@ -110,14 +96,12 @@ export class ProfileValidator {
     });
 
     if (errors.length > 0) {
-      const messages = errors
-        .flatMap((error) => Object.values(error.constraints ?? {}))
-        .join(', ');
+      const messages = errors.flatMap((error) => Object.values(error.constraints ?? {})).join(', ');
 
       throw new BadRequestException(`Profil invalide : ${messages}`);
     }
 
-    return { ...instance } as Prisma.InputJsonObject;
+    return { ...instance };
   }
 
   private async assertExists(
@@ -166,9 +150,7 @@ export class ProfileValidator {
     }
 
     if (count !== uniqueIds.length) {
-      throw new BadRequestException(
-        `${label} invalide : un ou plusieurs IDs n'existent pas`,
-      );
+      throw new BadRequestException(`${label} invalide : un ou plusieurs IDs n'existent pas`);
     }
   }
 }

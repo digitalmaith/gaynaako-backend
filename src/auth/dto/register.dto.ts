@@ -21,11 +21,15 @@ export class RegisterDto {
   // --- PME ---
   @ApiPropertyOptional() @IsOptional() @IsString() nomEntreprise?: string;
   @ApiPropertyOptional({ description: 'UUIDs séparés par des virgules' })
-  @IsOptional() @IsString() secteurIds?: string;
+  @IsOptional()
+  @IsString()
+  secteurIds?: string;
 
   // --- ONG ---
   @ApiPropertyOptional() @IsOptional() @IsString() nomOrganisation?: string;
   @ApiPropertyOptional({ description: 'UUIDs séparés par des virgules' })
-  @IsOptional() @IsString() domaineInterventionIds?: string;
+  @IsOptional()
+  @IsString()
+  domaineInterventionIds?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() mission?: string;
 }

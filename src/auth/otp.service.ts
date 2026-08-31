@@ -13,7 +13,9 @@ export class OtpService {
   constructor(private readonly otpRepository: OtpRepository) {}
 
   private generateCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString().slice(0, OTP_LENGTH);
+    return Math.floor(100000 + Math.random() * 900000)
+      .toString()
+      .slice(0, OTP_LENGTH);
   }
 
   async createOtp(email: string, purpose: OtpPurpose): Promise<string> {
