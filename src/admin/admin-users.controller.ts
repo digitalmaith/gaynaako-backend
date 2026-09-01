@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+// src/admin/admin-users.controller.ts
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AdminUsersService } from './admin-users.service';
 import { ListUsersQueryDto } from './dto/list-users-query.dto';
@@ -40,5 +51,10 @@ export class AdminUsersController {
   @Delete(':id')
   deleteUser(@Param('id') id: string, @CurrentUser() currentUser: JwtPayload) {
     return this.adminUsersService.deleteUser(id, currentUser.sub);
+  }
+
+  @Post(':id/restore')
+  restoreUser(@Param('id') id: string, @CurrentUser() currentUser: JwtPayload) {
+    return this.adminUsersService.restoreUser(id, currentUser.sub);
   }
 }

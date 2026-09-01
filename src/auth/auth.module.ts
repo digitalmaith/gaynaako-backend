@@ -44,6 +44,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     RefreshTokenRepository,
     JwtStrategy,
   ],
-  exports: [AuthService, UtilisateurRepository],
+  exports: [AuthService, UtilisateurRepository, RefreshTokenRepository],
 })
 export class AuthModule {}

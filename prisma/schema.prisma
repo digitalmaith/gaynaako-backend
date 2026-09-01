@@ -127,6 +127,7 @@ model Utilisateur {
   role         RoleUtilisateur
   statut       StatutUtilisateur @default(ACTIF)
   dateCreation DateTime          @default(now())
+  supprimeLe   DateTime?
 
   entrepreneur   EntrepreneurProfile?
   pme            PmeProfile?

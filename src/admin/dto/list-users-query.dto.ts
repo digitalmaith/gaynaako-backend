@@ -1,6 +1,7 @@
+// src/admin/dto/list-users-query.dto.ts
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { RoleUtilisateur, StatutUtilisateur } from '../../generated/prisma/enums';
 
 export class ListUsersQueryDto {
@@ -18,6 +19,15 @@ export class ListUsersQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Inclure les comptes supprimés (soft delete)',
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  inclureSupprimes?: boolean = false;
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
