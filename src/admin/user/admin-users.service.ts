@@ -1,15 +1,14 @@
-// src/admin/admin-users.service.ts
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { UtilisateurRepository } from '../auth/repositories/utilisateur.repository';
-import { RefreshTokenRepository } from '../auth/repositories/refresh-token.repository';
-import { JournalRepository } from './repositories/journal.repository';
-import { ListUsersQueryDto } from './dto/list-users-query.dto';
-import { RoleUtilisateur } from '../generated/prisma/enums';
+import { UtilisateurRepository } from '../../auth/repositories/utilisateur.repository';
+import { RefreshTokenRepository } from '../../auth/repositories/refresh-token.repository';
+import { JournalRepository } from '../repositories/journal.repository';
+import { ListUsersQueryDto } from '../dto/list-users-query.dto';
+import { RoleUtilisateur } from '../../generated/prisma/enums';
 
 @Injectable()
 export class AdminUsersService {

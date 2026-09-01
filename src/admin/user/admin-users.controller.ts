@@ -12,14 +12,14 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AdminUsersService } from './admin-users.service';
-import { ListUsersQueryDto } from './dto/list-users-query.dto';
-import { UpdateUserStatutDto } from './dto/update-user-statut.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { RoleUtilisateur } from '../generated/prisma/enums';
-import type { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { ListUsersQueryDto } from '../dto/list-users-query.dto';
+import { UpdateUserStatutDto } from '../dto/update-user-statut.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { RoleUtilisateur } from '../../generated/prisma/enums';
+import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
 
 @ApiTags('admin')
 @ApiBearerAuth()
