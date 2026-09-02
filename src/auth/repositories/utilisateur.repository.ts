@@ -45,6 +45,7 @@ export interface ListUsersFilters {
   role?: RoleUtilisateur;
   statut?: StatutUtilisateur;
   search?: string;
+  inclureSupprimes?: boolean;
   skip: number;
   take: number;
 }
@@ -54,23 +55,23 @@ export class UtilisateurRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   findByEmail(email: string) {
-    return this.prisma.utilisateur.findUnique({ where: { email } });
+    return this.prisma.utilisateur.findUnique({ where: { email, supprimeLe: null } });
   }
 
   findByEmailWithProfile(email: string) {
     return this.prisma.utilisateur.findUnique({
-      where: { email },
+      where: { email, supprimeLe: null },
       include: PROFILE_INCLUDE,
     });
   }
 
   findById(id: string) {
-    return this.prisma.utilisateur.findUnique({ where: { id } });
+    return this.prisma.utilisateur.findUnique({ where: { id, supprimeLe: null } });
   }
 
   findByIdWithProfile(id: string) {
     return this.prisma.utilisateur.findUnique({
-      where: { id },
+      where: { id, supprimeLe: null },
       include: PROFILE_INCLUDE,
     });
   }
@@ -99,8 +100,26 @@ export class UtilisateurRepository {
     return this.prisma.utilisateur.delete({ where: { id } });
   }
 
-  private buildWhere(filters: Pick<ListUsersFilters, 'role' | 'statut' | 'search'>) {
+  softDelete(id: string) {
+    return this.prisma.utilisateur.update({
+      where: { id },
+      data: { supprimeLe: new Date() },
+    });
+  }
+
+  restore(id: string) {
+    return this.prisma.utilisateur.update({
+      where: { id },
+      data: { supprimeLe: null },
+      include: PROFILE_INCLUDE,
+    });
+  }
+
+  private buildWhere(
+    filters: Pick<ListUsersFilters, 'role' | 'statut' | 'search' | 'inclureSupprimes'>,
+  ) {
     return {
+      ...(filters.inclureSupprimes ? {} : { supprimeLe: null }),
       ...(filters.role ? { role: filters.role } : {}),
       ...(filters.statut ? { statut: filters.statut } : {}),
       ...(filters.search
@@ -174,6 +193,13 @@ export class UtilisateurRepository {
       }
 
       return utilisateur;
+    });
+  }
+
+  findByIdIncludingDeleted(id: string) {
+    return this.prisma.utilisateur.findUnique({
+      where: { id },
+      include: PROFILE_INCLUDE,
     });
   }
 }
