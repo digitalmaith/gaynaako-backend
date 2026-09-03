@@ -88,6 +88,8 @@ model RefreshToken {
 model PendingRegistration {
   id            String          @id @default(uuid())
   email         String          @unique
+  nom           String
+  prenom        String
   motDePasse    String
   role          RoleUtilisateur
   // Champs specifiques au role, valides par DTO avant stockage
@@ -124,6 +126,8 @@ model Utilisateur {
   id           String            @id @default(uuid())
   email        String            @unique
   motDePasse   String
+  nom          String
+  prenom       String
   role         RoleUtilisateur
   statut       StatutUtilisateur @default(ACTIF)
   dateCreation DateTime          @default(now())

@@ -55,14 +55,16 @@ export class AuthService {
     await this.pendingRegistrationRepository.upsert({
       email: dto.email,
       motDePasse: motDePasseHash,
+      nom: dto.nom,
+      prenom: dto.prenom,
       role: dto.role,
       donneesProfil,
     });
 
     const code = await this.otp.createOtp(dto.email, OtpPurpose.EMAIL_VERIFICATION);
-    await this.mail.sendOtpEmail(dto.email, code);
+    await this.mail.sendOtpEmail(dto.email, code, dto.prenom); // utilise déjà prenom pour le "Bonjour"
 
-    return { message: `Un code de vérification a été envoyé par email.`, email: dto.email };
+    return { message: 'Un code de vérification a été envoyé par email.', email: dto.email };
   }
 
   async verifyOtp(email: string, code: string) {
@@ -75,6 +77,8 @@ export class AuthService {
     const utilisateur = await this.utilisateurRepository.createWithProfile(
       pending.email,
       pending.motDePasse,
+      pending.nom,
+      pending.prenom,
       this.mapToProfileInput(pending.role, donnees),
     );
 

@@ -80,6 +80,8 @@ async function seedAdmin() {
     create: {
       email: ADMIN_EMAIL,
       motDePasse: motDePasseHash,
+      nom: 'Admin',
+      prenom: 'Gaynaako',
       role: RoleUtilisateur.ADMINISTRATEUR,
       statut: StatutUtilisateur.ACTIF,
       administrateur: {
