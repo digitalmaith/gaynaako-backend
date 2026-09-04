@@ -30,6 +30,8 @@ export class AuthController {
       properties: {
         email: { type: 'string' },
         password: { type: 'string' },
+        nom: { type: 'string' },
+        prenom: { type: 'string' },
         role: { type: 'string', enum: ['ENTREPRENEUR', 'PME', 'ONG'] },
         secteurId: { type: 'string', description: 'Entrepreneur' },
         paysId: { type: 'string', description: 'Entrepreneur' },
@@ -42,7 +44,7 @@ export class AuthController {
         mission: { type: 'string', description: 'ONG (optionnel)' },
         logo: { type: 'string', format: 'binary', description: 'PME / ONG' },
       },
-      required: ['email', 'password', 'role'],
+      required: ['email', 'password', 'nom', 'prenom', 'role'],
     },
   })
   async register(@Req() req: FastifyRequest) {

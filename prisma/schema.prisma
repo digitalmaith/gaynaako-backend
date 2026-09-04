@@ -144,6 +144,7 @@ model Utilisateur {
   conversations   ChatbotConversation[]
   notifications   Notification[]
   refreshTokens RefreshToken[]
+  documents DocumentUtilisateur[]
 
   @@map("utilisateurs")
 }
@@ -377,3 +378,31 @@ model DomaineIntervention {
   @@map("domaines_intervention")
 }
 
+enum TypeDocument {
+  CV
+  PIECE_IDENTITE
+  REGISTRE_COMMERCE
+  NINEA
+  STATUTS_ENTREPRISE
+  ATTESTATION_FISCALE
+  ATTESTATION_SOCIALE
+  JUSTIFICATIF_DOMICILE
+  ATTESTATION
+  AUTRE
+}
+
+model DocumentUtilisateur {
+  id            String       @id @default(uuid())
+  utilisateurId String
+  utilisateur   Utilisateur  @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  type          TypeDocument
+  libelle       String
+  url           String
+  nomFichier    String
+  mimeType      String
+  tailleOctets  Int
+  dateAjout     DateTime     @default(now())
+
+  @@index([utilisateurId])
+  @@map("documents_utilisateur")
+}

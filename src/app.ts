@@ -18,7 +18,7 @@ export async function createApp(): Promise<NestFastifyApplication> {
   );
 
   await app.register(multipart, {
-    limits: { fileSize: 5 * 1024 * 1024 },
+    limits: { fileSize: 10 * 1024 * 1024 },
   });
 
   setupSwagger(app);
