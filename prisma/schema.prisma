@@ -244,12 +244,14 @@ model Opportunite {
   id                  String             @id @default(uuid())
   externalId          String?            @unique
   titre               String
+  description         String
   type                TypeOpportunite
   pays                String
   dateLimite          DateTime
   criteresEligibilite String?
   origine             OrigineOpportunite @default(MANUELLE)
   dateCreation        DateTime           @default(now())
+  supprimeLe          DateTime?
 
   secteurId String
   secteur   Secteur @relation(fields: [secteurId], references: [id])

@@ -9,6 +9,7 @@ import { CloudinaryModule } from './common/cloudinary/cloudinary.module';
 import { ReferenceModule } from './reference/reference.module';
 import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
+import { OpportunitesModule } from './opportunites/opportunites.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module';
     ReferenceModule,
     AdminModule,
     UsersModule,
+    OpportunitesModule,
   ],
   providers: [
     {
