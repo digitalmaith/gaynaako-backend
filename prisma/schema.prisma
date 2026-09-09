@@ -235,14 +235,21 @@ model Emetteur {
   @@map("emetteurs")
 }
 
+enum OrigineOpportunite {
+  MANUELLE
+  IA
+}
+
 model Opportunite {
-  id                  String          @id @default(uuid())
+  id                  String             @id @default(uuid())
+  externalId          String?            @unique
   titre               String
   type                TypeOpportunite
   pays                String
   dateLimite          DateTime
   criteresEligibilite String?
-  dateCreation        DateTime        @default(now())
+  origine             OrigineOpportunite @default(MANUELLE)
+  dateCreation        DateTime           @default(now())
 
   secteurId String
   secteur   Secteur @relation(fields: [secteurId], references: [id])

@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import { ConfigService } from '@nestjs/config';
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 
 @Injectable()
 export class CloudinaryService {
@@ -68,5 +68,22 @@ export class CloudinaryService {
       );
       Readable.from(buffer).pipe(stream);
     });
+  }
+
+  async deleteByUrl(url: string): Promise<void> {
+    const publicId = this.extractPublicId(url);
+    if (!publicId) return; // URL non reconnue, on ignore plutôt que de planter
+
+    try {
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
+    } catch {
+      // Suppression best-effort : un échec ici ne doit pas bloquer la mise à jour du document
+    }
+  }
+
+  private extractPublicId(url: string): string | null {
+    // Format Cloudinary : .../upload/v<version>/<folder>/<public_id>.<ext>
+    const match = /\/upload\/(?:v\d+\/)?(.+)\.\w+$/.exec(url);
+    return match ? match[1] : null;
   }
 }

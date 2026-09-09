@@ -34,4 +34,8 @@ export class DocumentRepository {
   delete(id: string) {
     return this.prisma.documentUtilisateur.delete({ where: { id } });
   }
+
+  update(id: string, data: Partial<Omit<CreateDocumentData, 'utilisateurId'>>) {
+    return this.prisma.documentUtilisateur.update({ where: { id }, data });
+  }
 }
