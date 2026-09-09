@@ -10,6 +10,7 @@ import { ReferenceModule } from './reference/reference.module';
 import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
 import { OpportunitesModule } from './opportunites/opportunites.module';
+import { CandidaturesModule } from './candidatures/candidatures.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { OpportunitesModule } from './opportunites/opportunites.module';
     AdminModule,
     UsersModule,
     OpportunitesModule,
+    CandidaturesModule,
   ],
   providers: [
     {
