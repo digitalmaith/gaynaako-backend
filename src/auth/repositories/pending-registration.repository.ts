@@ -6,6 +6,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 export interface UpsertPendingRegistrationData {
   email: string;
   motDePasse: string;
+  nom: string;
+  prenom: string;
   role: RoleUtilisateur;
   donneesProfil: Prisma.InputJsonValue;
 }
@@ -24,6 +26,8 @@ export class PendingRegistrationRepository {
       create: data,
       update: {
         motDePasse: data.motDePasse,
+        nom: data.nom,
+        prenom: data.prenom,
         role: data.role,
         donneesProfil: data.donneesProfil,
       },

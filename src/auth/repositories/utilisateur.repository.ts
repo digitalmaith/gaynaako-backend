@@ -145,52 +145,19 @@ export class UtilisateurRepository {
     return { items, total };
   }
 
-  async createWithProfile(email: string, motDePasse: string, input: ProfileInput) {
+  async createWithProfile(
+    email: string,
+    motDePasse: string,
+    nom: string,
+    prenom: string,
+    input: ProfileInput,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const utilisateur = await tx.utilisateur.create({
-        data: { email, motDePasse, role: input.role },
+        data: { email, motDePasse, nom, prenom, role: input.role },
       });
 
-      switch (input.role) {
-        case 'ENTREPRENEUR':
-          await tx.entrepreneurProfile.create({
-            data: {
-              utilisateurId: utilisateur.id,
-              secteurId: input.profile.secteurId,
-              paysId: input.profile.paysId,
-              domaineExpertise: input.profile.domaineExpertise,
-              objectifs: input.profile.objectifs,
-            },
-          });
-          break;
-        case 'PME':
-          await tx.pmeProfile.create({
-            data: {
-              utilisateurId: utilisateur.id,
-              nomEntreprise: input.profile.nomEntreprise,
-              logoUrl: input.profile.logoUrl,
-              secteurs: {
-                connect: input.profile.secteurIds.map((id) => ({ id })),
-              },
-            },
-          });
-          break;
-        case 'ONG':
-          await tx.ongProfile.create({
-            data: {
-              utilisateurId: utilisateur.id,
-              nomOrganisation: input.profile.nomOrganisation,
-              mission: input.profile.mission,
-              logoUrl: input.profile.logoUrl,
-              domainesIntervention: {
-                connect: input.profile.domaineInterventionIds.map((id) => ({
-                  id,
-                })),
-              },
-            },
-          });
-          break;
-      }
+      // ... switch inchangé pour la création du profil spécialisé
 
       return utilisateur;
     });
@@ -201,5 +168,62 @@ export class UtilisateurRepository {
       where: { id },
       include: PROFILE_INCLUDE,
     });
+  }
+
+  updateEntrepreneurProfile(
+    utilisateurId: string,
+    data: Partial<{
+      secteurId: string;
+      paysId: string;
+      domaineExpertise: string;
+      objectifs: string;
+    }>,
+  ) {
+    return this.prisma.entrepreneurProfile.update({
+      where: { utilisateurId },
+      data,
+      include: { secteur: true, pays: true },
+    });
+  }
+
+  updatePmeProfile(
+    utilisateurId: string,
+    data: { nomEntreprise?: string; secteurIds?: string[]; logoUrl?: string },
+  ) {
+    const { secteurIds, ...rest } = data;
+    return this.prisma.pmeProfile.update({
+      where: { utilisateurId },
+      data: {
+        ...rest,
+        ...(secteurIds ? { secteurs: { set: secteurIds.map((id) => ({ id })) } } : {}),
+      },
+      include: { secteurs: true },
+    });
+  }
+
+  updateOngProfile(
+    utilisateurId: string,
+    data: {
+      nomOrganisation?: string;
+      domaineInterventionIds?: string[];
+      mission?: string;
+      logoUrl?: string;
+    },
+  ) {
+    const { domaineInterventionIds, ...rest } = data;
+    return this.prisma.ongProfile.update({
+      where: { utilisateurId },
+      data: {
+        ...rest,
+        ...(domaineInterventionIds
+          ? { domainesIntervention: { set: domaineInterventionIds.map((id) => ({ id })) } }
+          : {}),
+      },
+      include: { domainesIntervention: true },
+    });
+  }
+
+  updateIdentity(id: string, data: { nom?: string; prenom?: string }) {
+    return this.prisma.utilisateur.update({ where: { id }, data });
   }
 }

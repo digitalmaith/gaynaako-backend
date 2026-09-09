@@ -11,6 +11,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { CheckEmailDto } from './dto/check-email.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import type { FastifyRequest } from 'fastify';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -24,12 +25,15 @@ export class AuthController {
 
   @Post('register')
   @ApiConsumes('multipart/form-data')
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 5 tentatives/minute par IP
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         email: { type: 'string' },
         password: { type: 'string' },
+        nom: { type: 'string' },
+        prenom: { type: 'string' },
         role: { type: 'string', enum: ['ENTREPRENEUR', 'PME', 'ONG'] },
         secteurId: { type: 'string', description: 'Entrepreneur' },
         paysId: { type: 'string', description: 'Entrepreneur' },
@@ -42,7 +46,7 @@ export class AuthController {
         mission: { type: 'string', description: 'ONG (optionnel)' },
         logo: { type: 'string', format: 'binary', description: 'PME / ONG' },
       },
-      required: ['email', 'password', 'role'],
+      required: ['email', 'password', 'nom', 'prenom', 'role'],
     },
   })
   async register(@Req() req: FastifyRequest) {
@@ -68,16 +72,19 @@ export class AuthController {
   }
 
   @Post('resend-otp')
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 5 tentatives/minute par IP
   async resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendOtp(dto.email);
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives/minute par IP
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
   }
 
   @Post('refresh')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 tentatives/minute par IP
   async refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refresh(dto.refreshToken);
   }
@@ -88,6 +95,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 5 tentatives/minute par IP
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email);
   }

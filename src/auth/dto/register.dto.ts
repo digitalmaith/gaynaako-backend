@@ -10,6 +10,14 @@ export enum RegisterRole {
 export class RegisterDto {
   @ApiProperty() @IsEmail() email!: string;
   @ApiProperty() @IsString() @MinLength(8) password!: string;
+  @ApiProperty()
+  @IsString()
+  @MinLength(2)
+  nom!: string;
+  @ApiProperty()
+  @IsString()
+  @MinLength(2)
+  prenom!: string;
   @ApiProperty({ enum: RegisterRole }) @IsEnum(RegisterRole) role!: RegisterRole;
 
   // --- Entrepreneur ---

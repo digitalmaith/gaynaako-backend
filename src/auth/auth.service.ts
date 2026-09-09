@@ -1,3 +1,4 @@
+// src/auth/auth.service.ts
 import {
   BadRequestException,
   ConflictException,
@@ -17,6 +18,9 @@ import { UtilisateurRepository } from './repositories/utilisateur.repository';
 import { PendingRegistrationRepository } from './repositories/pending-registration.repository';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository';
 import { OtpPurpose, RoleUtilisateur } from '../generated/prisma/enums';
+
+const MIME_TYPES_LOGO_AUTORISES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const TAILLE_MAX_LOGO_OCTETS = 5 * 1024 * 1024; // 5 Mo
 
 @Injectable()
 export class AuthService {
@@ -39,12 +43,27 @@ export class AuthService {
     return rest as Omit<T, 'motDePasse'>;
   }
 
-  async register(dto: RegisterDto, logoFile?: { buffer: Buffer; filename: string }) {
+  private validateLogoFile(file: { buffer: Buffer; mimeType?: string }): void {
+    if (file.mimeType && !MIME_TYPES_LOGO_AUTORISES.has(file.mimeType)) {
+      throw new BadRequestException(
+        `Le logo doit être une image (JPEG, PNG ou WEBP). Reçu : ${file.mimeType}`,
+      );
+    }
+    if (file.buffer.length > TAILLE_MAX_LOGO_OCTETS) {
+      throw new BadRequestException('Le logo est trop volumineux (5 Mo maximum)');
+    }
+  }
+
+  async register(
+    dto: RegisterDto,
+    logoFile?: { buffer: Buffer; filename: string; mimeType?: string },
+  ) {
     const existing = await this.utilisateurRepository.findByEmail(dto.email);
     if (existing) throw new ConflictException('Email déjà utilisé');
 
     let logoUrl: string | undefined;
     if (logoFile && (dto.role === RegisterRole.PME || dto.role === RegisterRole.ONG)) {
+      this.validateLogoFile(logoFile);
       logoUrl = await this.cloudinary.uploadLogo(logoFile.buffer, logoFile.filename);
     }
 
@@ -55,14 +74,16 @@ export class AuthService {
     await this.pendingRegistrationRepository.upsert({
       email: dto.email,
       motDePasse: motDePasseHash,
+      nom: dto.nom,
+      prenom: dto.prenom,
       role: dto.role,
       donneesProfil,
     });
 
     const code = await this.otp.createOtp(dto.email, OtpPurpose.EMAIL_VERIFICATION);
-    await this.mail.sendOtpEmail(dto.email, code);
+    await this.mail.sendOtpEmail(dto.email, code, dto.prenom);
 
-    return { message: `Un code de vérification a été envoyé par email.`, email: dto.email };
+    return { message: 'Un code de vérification a été envoyé par email.', email: dto.email };
   }
 
   async verifyOtp(email: string, code: string) {
@@ -75,6 +96,8 @@ export class AuthService {
     const utilisateur = await this.utilisateurRepository.createWithProfile(
       pending.email,
       pending.motDePasse,
+      pending.nom,
+      pending.prenom,
       this.mapToProfileInput(pending.role, donnees),
     );
 
@@ -157,7 +180,6 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token invalide ou expiré');
     }
 
-    // Rotation : on révoque l'ancien avant d'en émettre un nouveau
     await this.refreshTokenRepository.revoke(stored.id);
 
     const user = await this.utilisateurRepository.findById(stored.utilisateurId);
@@ -199,7 +221,6 @@ export class AuthService {
     const hashed = await bcrypt.hash(newPassword, 10);
     await this.utilisateurRepository.updateMotDePasse(email, hashed);
 
-    // Sécurité : un changement de mot de passe invalide toutes les sessions actives
     await this.refreshTokenRepository.revokeAllForUser(user.id);
 
     return { message: 'Mot de passe réinitialisé avec succès.' };
