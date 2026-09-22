@@ -11,6 +11,8 @@ import { AdminModule } from './admin/admin.module';
 import { UsersModule } from './users/users.module';
 import { OpportunitesModule } from './opportunites/opportunites.module';
 import { CandidaturesModule } from './candidatures/candidatures.module';
+import { FavorisModule } from './favoris/favoris.module';
+import { AbonnementsModule } from './abonnements/abonnements.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { CandidaturesModule } from './candidatures/candidatures.module';
     UsersModule,
     OpportunitesModule,
     CandidaturesModule,
+    FavorisModule,
+    AbonnementsModule,
   ],
   providers: [
     {

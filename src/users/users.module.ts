@@ -6,9 +6,10 @@ import { DocumentsService } from './documents.service';
 import { DocumentRepository } from './repositories/document.repository';
 import { AuthModule } from '../auth/auth.module';
 import { CloudinaryModule } from '../common/cloudinary/cloudinary.module';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [AuthModule, CloudinaryModule],
+  imports: [AuthModule, CloudinaryModule, HttpModule],
   controllers: [UsersController, DocumentsController],
   providers: [UsersService, DocumentsService, DocumentRepository],
 })

@@ -145,6 +145,7 @@ model Utilisateur {
   notifications   Notification[]
   refreshTokens RefreshToken[]
   documents DocumentUtilisateur[]
+  abonnements Abonnement[]
 
   @@map("utilisateurs")
 }
@@ -401,17 +402,107 @@ enum TypeDocument {
 }
 
 model DocumentUtilisateur {
-  id            String       @id @default(uuid())
-  utilisateurId String
-  utilisateur   Utilisateur  @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  type          TypeDocument
-  libelle       String
-  url           String
-  nomFichier    String
-  mimeType      String
-  tailleOctets  Int
-  dateAjout     DateTime     @default(now())
+  id              String       @id @default(uuid())
+  utilisateurId   String
+  utilisateur     Utilisateur  @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  type            TypeDocument
+  libelle         String
+  publicId        String
+  resourceType    String
+  nomFichier      String
+  mimeType        String
+  tailleOctets    Int
+  dateExpiration  DateTime?
+  dateAjout       DateTime     @default(now())
 
   @@index([utilisateurId])
   @@map("documents_utilisateur")
+}
+
+enum CycleFacturation {
+  MENSUEL
+  ANNUEL
+}
+
+enum StatutAbonnement {
+  EN_ATTENTE
+  ACTIF
+  EXPIRE
+  ANNULE
+  ECHEC_PAIEMENT
+}
+
+enum StatutTransaction {
+  EN_ATTENTE
+  REUSSIE
+  ECHOUEE
+  REMBOURSEE
+}
+
+enum FournisseurPaiement {
+  WAVE
+  ORANGE_MONEY
+}
+
+model Plan {
+  id                String   @id @default(uuid())
+  nom               String   @unique // ex: "Gratuit", "Pro", "Entreprise"
+  description        String?
+  prixMensuel        Int      // en FCFA, 0 pour le plan gratuit
+  prixAnnuel         Int
+  actif              Boolean  @default(true)
+  ordreAffichage     Int      @default(0)
+  dateCreation       DateTime @default(now())
+
+  fonctionnalites PlanFonctionnalite[]
+  abonnements     Abonnement[]
+
+  @@map("plans")
+}
+
+model PlanFonctionnalite {
+  id     String @id @default(uuid())
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  cle    String // ex: "max_candidatures_par_mois", "acces_chatbot", "alertes_prioritaires"
+  valeur String // stocké en texte, interprété selon la clé ("illimite", "10", "true"...)
+
+  @@unique([planId, cle])
+  @@map("plan_fonctionnalites")
+}
+
+model Abonnement {
+  id              String            @id @default(uuid())
+  utilisateurId   String
+  utilisateur     Utilisateur       @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            Plan              @relation(fields: [planId], references: [id])
+  cycle           CycleFacturation
+  statut          StatutAbonnement  @default(EN_ATTENTE)
+  dateDebut       DateTime?
+  dateFin         DateTime?
+  renouvellementAuto Boolean        @default(true)
+  dateCreation    DateTime          @default(now())
+  supprimeLe      DateTime?
+
+  transactions Transaction[]
+
+  @@index([utilisateurId])
+  @@map("abonnements")
+}
+
+model Transaction {
+  id                String              @id @default(uuid())
+  abonnementId      String
+  abonnement        Abonnement          @relation(fields: [abonnementId], references: [id], onDelete: Cascade)
+  fournisseur       FournisseurPaiement
+  referenceExterne  String?             @unique // ID de transaction côté Wave/Orange Money
+  montant           Int                 // en FCFA
+  statut            StatutTransaction   @default(EN_ATTENTE)
+  dateCreation      DateTime            @default(now())
+  dateConfirmation  DateTime?
+  metadonnees       Json?               // payload brut du webhook, pour debug/audit
+
+  @@index([abonnementId])
+  @@map("transactions")
 }

@@ -5,6 +5,7 @@ import { UpdateOpportuniteDto } from './dto/update-opportunite.dto';
 import { ImportOpportuniteDto } from './dto/import-opportunite.dto';
 import { ListOpportunitesQueryDto } from './dto/list-opportunites-query.dto';
 import { OrigineOpportunite } from '../generated/prisma/enums';
+import { SearchOpportunitesQueryDto } from './dto/search-opportunites-query.dto';
 
 @Injectable()
 export class OpportunitesService {
@@ -94,5 +95,23 @@ export class OpportunitesService {
 
     const created = await this.opportuniteRepository.create(data);
     return { opportunite: created, cree: true };
+  }
+
+  async searchPublic(query: SearchOpportunitesQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const { items, total } = await this.opportuniteRepository.findManyPaginated({
+      type: query.type,
+      secteurId: query.secteurId,
+      pays: query.pays,
+      search: query.search,
+      inclureExpirees: query.inclureExpirees,
+      skip,
+      take: limit,
+    });
+
+    return { items, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
   }
 }

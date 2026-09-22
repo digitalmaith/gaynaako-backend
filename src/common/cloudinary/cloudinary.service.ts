@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import { ConfigService } from '@nestjs/config';
-import { Readable } from 'node:stream';
+import { Readable } from 'stream';
 
 @Injectable()
 export class CloudinaryService {
@@ -15,6 +15,7 @@ export class CloudinaryService {
   }
 
   async uploadLogo(buffer: Buffer, filename: string): Promise<string> {
+    // logos : publics par nature (affichés aux autres utilisateurs), inchangé
     return new Promise<string>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
@@ -25,9 +26,7 @@ export class CloudinaryService {
         (error, result) => {
           if (error) {
             const message =
-              error instanceof Error
-                ? error.message
-                : (error?.message ?? "Échec de l'upload Cloudinary");
+              error instanceof Error ? error.message : (error?.message ?? "Échec de l'upload Cloudinary");
             reject(new Error(message));
             return;
           }
@@ -42,20 +41,22 @@ export class CloudinaryService {
     });
   }
 
-  async uploadDocument(buffer: Buffer, filename: string): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
+  async uploadDocument(
+    buffer: Buffer,
+    filename: string,
+  ): Promise<{ publicId: string; resourceType: string }> {
+    return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: 'gaynaako/documents',
           public_id: `${Date.now()}-${filename.split('.')[0]}`,
           resource_type: 'auto',
+          type: 'authenticated', // jamais accessible via une URL directe non signée
         },
         (error, result) => {
           if (error) {
             const message =
-              error instanceof Error
-                ? error.message
-                : (error?.message ?? "Échec de l'upload du document");
+              error instanceof Error ? error.message : (error?.message ?? "Échec de l'upload du document");
             reject(new Error(message));
             return;
           }
@@ -63,27 +64,40 @@ export class CloudinaryService {
             reject(new Error("Cloudinary n'a retourné aucun résultat"));
             return;
           }
-          resolve(result.secure_url);
+          resolve({ publicId: result.public_id, resourceType: result.resource_type });
         },
       );
       Readable.from(buffer).pipe(stream);
     });
   }
 
-  async deleteByUrl(url: string): Promise<void> {
-    const publicId = this.extractPublicId(url);
-    if (!publicId) return; // URL non reconnue, on ignore plutôt que de planter
-
-    try {
-      await cloudinary.uploader.destroy(publicId, { resource_type: 'auto' });
-    } catch {
-      // Suppression best-effort : un échec ici ne doit pas bloquer la mise à jour du document
-    }
+  getSignedDocumentUrl(publicId: string, resourceType: string, format: string): string {
+    return cloudinary.url(publicId, {
+      resource_type: resourceType,
+      type: 'authenticated',
+      sign_url: true,
+      format,
+    });
   }
 
-  private extractPublicId(url: string): string | null {
-    // Format Cloudinary : .../upload/v<version>/<folder>/<public_id>.<ext>
-    const match = /\/upload\/(?:v\d+\/)?(.+)\.\w+$/.exec(url);
-    return match ? match[1] : null;
+  getPrivateDownloadUrl(publicId: string, resourceType: string, format: string): string {
+    const expiresAt = Math.floor(Date.now() / 1000) + 60; // 60s — jamais exposé au client, juste le temps du fetch serveur
+
+    return cloudinary.utils.private_download_url(publicId, format, {
+      resource_type: resourceType,
+      type: 'authenticated',
+      expires_at: expiresAt,
+    });
+  }
+
+  async deleteDocument(publicId: string, resourceType: string): Promise<void> {
+    try {
+      await cloudinary.uploader.destroy(publicId, {
+        resource_type: resourceType,
+        type: 'authenticated',
+      });
+    } catch {
+      // Suppression best-effort : un échec ici ne doit pas bloquer l'opération utilisateur
+    }
   }
 }

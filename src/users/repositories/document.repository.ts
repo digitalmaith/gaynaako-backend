@@ -1,3 +1,4 @@
+// src/users/repositories/document.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TypeDocument } from '../../generated/prisma/enums';
@@ -6,10 +7,12 @@ export interface CreateDocumentData {
   utilisateurId: string;
   type: TypeDocument;
   libelle: string;
-  url: string;
+  publicId: string;
+  resourceType: string;
   nomFichier: string;
   mimeType: string;
   tailleOctets: number;
+  dateExpiration?: Date | null;
 }
 
 @Injectable()
@@ -31,11 +34,11 @@ export class DocumentRepository {
     return this.prisma.documentUtilisateur.create({ data });
   }
 
-  delete(id: string) {
-    return this.prisma.documentUtilisateur.delete({ where: { id } });
-  }
-
   update(id: string, data: Partial<Omit<CreateDocumentData, 'utilisateurId'>>) {
     return this.prisma.documentUtilisateur.update({ where: { id }, data });
+  }
+
+  delete(id: string) {
+    return this.prisma.documentUtilisateur.delete({ where: { id } });
   }
 }

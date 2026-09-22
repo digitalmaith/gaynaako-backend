@@ -5,10 +5,11 @@ import { OpportuniteRepository } from './repositories/opportunite.repository';
 import { AdminOpportunitesController } from './controller/admin-opportunites.controller';
 import { AiImportController } from './controller/ai-import.controller';
 import { AuthModule } from '../auth/auth.module';
+import { OpportunitesPublicController } from './controller/opportunites-public.controller';
 
 @Module({
   imports: [AuthModule],
-  controllers: [AdminOpportunitesController, AiImportController],
+  controllers: [AdminOpportunitesController, AiImportController, OpportunitesPublicController],
   providers: [OpportunitesService, OpportuniteRepository],
 })
 export class OpportunitesModule {}
