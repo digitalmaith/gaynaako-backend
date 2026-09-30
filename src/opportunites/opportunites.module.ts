@@ -6,10 +6,11 @@ import { AdminOpportunitesController } from './controller/admin-opportunites.con
 import { AiImportController } from './controller/ai-import.controller';
 import { AuthModule } from '../auth/auth.module';
 import { OpportunitesPublicController } from './controller/opportunites-public.controller';
+import { AiApiKeyGuard } from './guards/ai-api-key.guard';
 
 @Module({
   imports: [AuthModule],
   controllers: [AdminOpportunitesController, AiImportController, OpportunitesPublicController],
-  providers: [OpportunitesService, OpportuniteRepository],
+  providers: [OpportunitesService, OpportuniteRepository, AiApiKeyGuard],
 })
 export class OpportunitesModule {}
