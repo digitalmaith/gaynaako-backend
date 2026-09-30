@@ -10,18 +10,26 @@ import { AppModule } from './app.module';
 export async function createApp(): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
 
+  // ─── CORS ───
   const allowedOrigins = (process.env.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+  // Log pour debug
+  console.log('🌐 CORS allowed origins:', allowedOrigins);
+
   app.enableCors({
     origin: allowedOrigins.length > 0 ? allowedOrigins : false,
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    exposedHeaders: ['Content-Length', 'Content-Type'],
+    maxAge: 86400,
   });
 
   await app.register(helmet, {
-    contentSecurityPolicy: false, // API pure JSON, pas de HTML servi — CSP non pertinent ici
+    contentSecurityPolicy: false,
   });
 
   app.useGlobalPipes(
