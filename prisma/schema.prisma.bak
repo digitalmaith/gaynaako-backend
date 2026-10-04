@@ -86,33 +86,8 @@ enum TypeDocument {
   AUTRE
 }
 
-enum CycleFacturation {
-  MENSUEL
-  ANNUEL
-}
-
-enum StatutAbonnement {
-  EN_ATTENTE
-  ACTIF
-  EXPIRE
-  ANNULE
-  ECHEC_PAIEMENT
-}
-
-enum StatutTransaction {
-  EN_ATTENTE
-  REUSSIE
-  ECHOUEE
-  REMBOURSEE
-}
-
-enum FournisseurPaiement {
-  WAVE
-  ORANGE_MONEY
-}
-
 // ============================================================
-// INSCRIPTION + OTP
+// AUTH
 // ============================================================
 
 model RefreshToken {
@@ -157,7 +132,7 @@ model OtpVerification {
 }
 
 // ============================================================
-// UTILISATEUR + profils
+// UTILISATEUR + profils 1-1
 // ============================================================
 
 model Utilisateur {
@@ -183,7 +158,6 @@ model Utilisateur {
   notifications   Notification[]
   refreshTokens   RefreshToken[]
   documents       DocumentUtilisateur[]
-  abonnements     Abonnement[]
 
   @@map("utilisateurs")
 }
@@ -200,7 +174,7 @@ model EntrepreneurProfile {
   pays   Pays   @relation(fields: [paysId], references: [id])
 
   domaineExpertise String
-  objectifs        String? @db.Text
+  objectifs        String?
 
   @@map("entrepreneur_profiles")
 }
@@ -212,7 +186,7 @@ model PmeProfile {
   nomEntreprise String
   logoUrl       String?
 
-  secteurs Secteur[]
+  secteurs PmeProfileSecteur[]
 
   @@map("pme_profiles")
 }
@@ -222,12 +196,35 @@ model OngProfile {
   utilisateurId   String      @unique
   utilisateur     Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
   nomOrganisation String
-  mission         String?     @db.Text
+  mission         String?
   logoUrl         String?
 
-  domainesIntervention DomaineIntervention[]
+  domainesIntervention OngProfileDomaine[]
 
   @@map("ong_profiles")
+}
+
+// Tables pivot (remplacent les String[] Postgres)
+model PmeProfileSecteur {
+  pmeProfileId String
+  secteurId    String
+
+  pmeProfile PmeProfile @relation(fields: [pmeProfileId], references: [id], onDelete: Cascade)
+  secteur    Secteur    @relation(fields: [secteurId], references: [id], onDelete: Cascade)
+
+  @@id([pmeProfileId, secteurId])
+  @@map("pme_profile_secteurs")
+}
+
+model OngProfileDomaine {
+  ongProfileId         String
+  domaineInterventionId String
+
+  ongProfile         OngProfile         @relation(fields: [ongProfileId], references: [id], onDelete: Cascade)
+  domaineIntervention DomaineIntervention @relation(fields: [domaineInterventionId], references: [id], onDelete: Cascade)
+
+  @@id([ongProfileId, domaineInterventionId])
+  @@map("ong_profile_domaines")
 }
 
 model AdministrateurProfile {
@@ -244,14 +241,6 @@ model AdministrateurProfile {
 }
 
 // ============================================================
-// TABLES PIVOT (remplacent String[] Postgres)
-// ============================================================
-
-
-
-
-
-// ============================================================
 // RÉFÉRENTIELS
 // ============================================================
 
@@ -259,9 +248,10 @@ model Secteur {
   id   String @id @default(uuid())
   nom  String @unique
 
-  opportunites  Opportunite[]
+  opportunites Opportunite[]
+
   entrepreneurs EntrepreneurProfile[]
-  pmes          PmeProfile[]
+  pmes          PmeProfileSecteur[]
 
   @@map("secteurs")
 }
@@ -280,7 +270,7 @@ model DomaineIntervention {
   id   String @id @default(uuid())
   nom  String @unique
 
-  ongs OngProfile[]
+  ongs OngProfileDomaine[]
 
   @@map("domaines_intervention")
 }
@@ -420,10 +410,6 @@ model Notification {
   @@map("notifications")
 }
 
-// ============================================================
-// ADMINISTRATION
-// ============================================================
-
 model JournalActivite {
   id        String   @id @default(uuid())
   action    String
@@ -435,95 +421,18 @@ model JournalActivite {
   @@map("journaux_activite")
 }
 
-// ============================================================
-// DOCUMENTS
-// ============================================================
-
 model DocumentUtilisateur {
-  id             String       @id @default(uuid())
-  utilisateurId  String
-  utilisateur    Utilisateur  @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  type           TypeDocument
-  libelle        String
-  publicId       String
-  resourceType   String
-  nomFichier     String
-  mimeType       String
-  tailleOctets   Int
-  dateExpiration DateTime?
-  dateAjout      DateTime     @default(now())
+  id            String       @id @default(uuid())
+  utilisateurId String
+  utilisateur   Utilisateur  @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  type          TypeDocument
+  libelle       String
+  url           String       @db.Text
+  nomFichier    String
+  mimeType      String
+  tailleOctets  Int
+  dateAjout     DateTime     @default(now())
 
   @@index([utilisateurId])
   @@map("documents_utilisateur")
-}
-
-// ============================================================
-// ABONNEMENTS & PAIEMENTS
-// ============================================================
-
-model Plan {
-  id             String   @id @default(uuid())
-  nom            String   @unique
-  description    String?  @db.Text
-  prixMensuel    Int
-  prixAnnuel     Int
-  actif          Boolean  @default(true)
-  ordreAffichage Int      @default(0)
-  dateCreation   DateTime @default(now())
-
-  fonctionnalites PlanFonctionnalite[]
-  abonnements     Abonnement[]
-
-  @@map("plans")
-}
-
-model PlanFonctionnalite {
-  id     String @id @default(uuid())
-  planId String
-  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
-  cle    String
-  valeur String
-
-  @@unique([planId, cle])
-  @@index([planId])
-  @@map("plan_fonctionnalites")
-}
-
-model Abonnement {
-  id                 String           @id @default(uuid())
-  utilisateurId      String
-  utilisateur        Utilisateur      @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
-  planId             String
-  plan               Plan             @relation(fields: [planId], references: [id])
-  cycle              CycleFacturation
-  statut             StatutAbonnement @default(EN_ATTENTE)
-  dateDebut          DateTime?
-  dateFin            DateTime?
-  renouvellementAuto Boolean          @default(true)
-  dateCreation       DateTime         @default(now())
-  supprimeLe         DateTime?
-
-  transactions Transaction[]
-
-  @@index([utilisateurId])
-  @@index([planId])
-  @@index([statut])
-  @@map("abonnements")
-}
-
-model Transaction {
-  id               String              @id @default(uuid())
-  abonnementId     String
-  abonnement       Abonnement          @relation(fields: [abonnementId], references: [id], onDelete: Cascade)
-  fournisseur      FournisseurPaiement
-  referenceExterne String?             @unique
-  montant          Int
-  statut           StatutTransaction   @default(EN_ATTENTE)
-  dateCreation     DateTime            @default(now())
-  dateConfirmation DateTime?
-  metadonnees      Json?
-
-  @@index([abonnementId])
-  @@index([statut])
-  @@map("transactions")
 }

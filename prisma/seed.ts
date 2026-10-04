@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 import { PrismaClient, RoleUtilisateur, StatutUtilisateur } from '../src/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import * as bcrypt from 'bcrypt';
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -10,9 +10,7 @@ if (!databaseUrl) {
   throw new Error('DATABASE_URL est introuvable dans le fichier .env');
 }
 
-const adapter = new PrismaPg({
-  connectionString: databaseUrl,
-});
+const adapter = new PrismaMariaDb(databaseUrl);
 
 const prisma = new PrismaClient({ adapter });
 
@@ -72,6 +70,7 @@ const DOMAINES_INTERVENTION = [
 
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@gaynaako.test';
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'Admin123!';
+
 async function seedAdmin() {
   const motDePasseHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
 

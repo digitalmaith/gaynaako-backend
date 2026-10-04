@@ -2,7 +2,7 @@ import { createApp } from './app';
 
 async function bootstrap() {
   const app = await createApp();
-  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  await app.listen(process.env.PORT ?? 3003, '0.0.0.0');
 }
 
 void bootstrap();
