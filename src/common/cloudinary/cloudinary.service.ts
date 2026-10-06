@@ -26,7 +26,9 @@ export class CloudinaryService {
         (error, result) => {
           if (error) {
             const message =
-              error instanceof Error ? error.message : (error?.message ?? "Échec de l'upload Cloudinary");
+              error instanceof Error
+                ? error.message
+                : (error?.message ?? "Échec de l'upload Cloudinary");
             reject(new Error(message));
             return;
           }
@@ -56,7 +58,9 @@ export class CloudinaryService {
         (error, result) => {
           if (error) {
             const message =
-              error instanceof Error ? error.message : (error?.message ?? "Échec de l'upload du document");
+              error instanceof Error
+                ? error.message
+                : (error?.message ?? "Échec de l'upload du document");
             reject(new Error(message));
             return;
           }

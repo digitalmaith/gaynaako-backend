@@ -180,10 +180,7 @@ export class UtilisateurRepository {
   }
 
   private buildWhere(
-    filters: Pick<
-      ListUsersFilters,
-      'role' | 'statut' | 'search' | 'inclureSupprimes'
-    >,
+    filters: Pick<ListUsersFilters, 'role' | 'statut' | 'search' | 'inclureSupprimes'>,
   ) {
     return {
       ...(filters.inclureSupprimes ? {} : { supprimeLe: null }),
@@ -298,8 +295,7 @@ export class UtilisateurRepository {
           await tx.administrateurProfile.create({
             data: {
               utilisateurId: utilisateur.id,
-              niveauAcces:
-                input.profile.niveauAcces ?? 'STANDARD',
+              niveauAcces: input.profile.niveauAcces ?? 'STANDARD',
             },
           });
           break;
@@ -317,9 +313,7 @@ export class UtilisateurRepository {
       });
 
       if (!utilisateurComplet) {
-        throw new Error(
-          "Utilisateur créé mais impossible de récupérer son profil",
-        );
+        throw new Error('Utilisateur créé mais impossible de récupérer son profil');
       }
 
       return utilisateurComplet;

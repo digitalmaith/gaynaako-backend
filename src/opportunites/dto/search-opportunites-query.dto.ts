@@ -25,7 +25,10 @@ export class SearchOpportunitesQueryDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ default: false, description: 'Inclure les opportunités dont la date limite est dépassée' })
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Inclure les opportunités dont la date limite est dépassée',
+  })
   @IsOptional()
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()

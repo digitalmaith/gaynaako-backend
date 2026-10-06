@@ -177,9 +177,7 @@ export class DocumentsService {
       throw new ForbiddenException('Ce document ne vous appartient pas');
     }
 
-    const format = document.nomFichier.includes('.')
-      ? document.nomFichier.split('.').pop()!
-      : '';
+    const format = document.nomFichier.includes('.') ? document.nomFichier.split('.').pop()! : '';
 
     const downloadUrl = this.cloudinary.getPrivateDownloadUrl(
       document.publicId,

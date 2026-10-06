@@ -13,6 +13,7 @@ import { OpportunitesModule } from './opportunites/opportunites.module';
 import { CandidaturesModule } from './candidatures/candidatures.module';
 import { FavorisModule } from './favoris/favoris.module';
 import { AbonnementsModule } from './abonnements/abonnements.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AbonnementsModule } from './abonnements/abonnements.module';
     CandidaturesModule,
     FavorisModule,
     AbonnementsModule,
+    ChatModule,
   ],
   providers: [
     {

@@ -76,13 +76,7 @@ export class OpportuniteRepository {
   private buildWhere(
     filters: Pick<
       ListOpportunitesFilters,
-      | 'type'
-      | 'origine'
-      | 'secteurId'
-      | 'pays'
-      | 'search'
-      | 'inclureSupprimes'
-      | 'inclureExpirees'
+      'type' | 'origine' | 'secteurId' | 'pays' | 'search' | 'inclureSupprimes' | 'inclureExpirees'
     >,
   ) {
     return {
@@ -218,10 +212,7 @@ export class OpportuniteRepository {
   /**
    * Mise à jour partielle d'une opportunité.
    */
-  update(
-    id: string,
-    data: Partial<UpsertOpportuniteData>,
-  ) {
+  update(id: string, data: Partial<UpsertOpportuniteData>) {
     return this.prisma.opportunite.update({
       where: { id },
       data: {
