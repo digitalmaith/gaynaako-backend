@@ -1,7 +1,6 @@
-// src/opportunites/controller/ai-import.controller.ts
 import { Body, Controller, Post, UseGuards, Logger } from '@nestjs/common';
 import { ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { OpportunitesService } from '../opportunites.service';
+import { OpportunitiesService } from '../opportunites.service';
 import { ImportOpportuniteDto } from '../dto/import-opportunite.dto';
 import { AiApiKeyGuard } from '../guards/ai-api-key.guard';
 
@@ -11,10 +10,10 @@ import { AiApiKeyGuard } from '../guards/ai-api-key.guard';
 @Controller('integrations/ai/opportunites')
 export class AiImportController {
   private readonly logger = new Logger(AiImportController.name);
-  constructor(private readonly opportunitesService: OpportunitesService) {}
+  constructor(private readonly opportunitesService: OpportunitiesService) {}
 
   @Post()
   importOpportunite(@Body() dto: ImportOpportuniteDto) {
-    return this.opportunitesService.importFromAi(dto); // ✅
+    return this.opportunitesService.importFromAi(dto);
   }
 }

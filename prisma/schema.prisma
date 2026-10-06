@@ -385,8 +385,8 @@ model Recommandation {
 
 model ChatbotConversation {
   id             String   @id @default(uuid())
-  utilisateurId  String
-  utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  utilisateurId  String?
+  utilisateur    Utilisateur? @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
   titre          String   @default("Nouvelle conversation")
   nombreMessages Int      @default(0)
   dateDebut      DateTime @default(now())
@@ -529,4 +529,76 @@ model Transaction {
   @@index([abonnementId])
   @@index([statut])
   @@map("transactions")
+}
+
+// ============================================================
+// TABLES IA/SCRAPER (hors Prisma, mais reconnues pour éviter les DROP)
+// ============================================================
+
+model OpportunityProcessed {
+  id                          String    @id @db.VarChar(12)
+  sourceName                  String    @map("source_name") @db.VarChar(255)
+  sourceType                  String    @map("source_type")
+  title                       String    @db.VarChar(300)
+  description                 String?   @db.Text
+  url                         String    @db.Text
+  dateOriginal                String?   @map("date_original") @db.VarChar(255)
+  dateNormalized              DateTime? @map("date_normalized") @db.Date
+  country                     String?   @db.VarChar(100)
+  sectorId                    Int?      @map("sector_id")
+  sectors                     String?   @db.Text
+  opportunityType             String?   @map("opportunity_type") @default("autre")
+  organization                String?   @db.VarChar(200)
+  hasDescription              String?   @map("has_description") @default("non")
+  hasDate                     String?   @map("has_date") @default("non")
+  qualityScore                Int?      @map("quality_score") @default(0)
+  targetAudience              String?   @map("target_audience") @db.VarChar(100)
+  experienceRequired          String?   @map("experience_required") @db.VarChar(50)
+  budgetRange                 String?   @map("budget_range") @db.VarChar(100)
+  urgency                     String?   @db.VarChar(20)
+  complexityLevel             Int?      @map("complexity_level") @default(1)
+  suggestedProfiles           String?   @map("suggested_profiles") @db.Text
+  deadline                    DateTime? @db.Date
+  beneficiairesCibles         String?   @map("beneficiaires_cibles") @db.VarChar(500)
+  criteresEligibilite         String?   @map("criteres_eligibilite") @db.Text
+  montantFinancement          String?   @map("montant_financement") @db.VarChar(300)
+  documentsNecessaires        String?   @map("documents_necessaires") @db.Text
+  informationsComplementaires String?   @map("informations_complementaires") @db.Text
+  nlpAmounts                  Json?     @map("nlp_amounts")
+  nlpDeadlines                Json?     @map("nlp_deadlines")
+  nlpOrganizations            Json?     @map("nlp_organizations")
+  nlpEmails                   Json?     @map("nlp_emails")
+  nlpPhones                   Json?     @map("nlp_phones")
+  nlpKeywords                 Json?     @map("nlp_keywords")
+  nlpQualityScore             Int?      @map("nlp_quality_score") @default(0)
+  nlpProcessedAt              DateTime? @map("nlp_processed_at")
+  collectedAt                 DateTime  @map("collected_at") @default(now())
+  createdAt                   DateTime  @map("created_at") @default(now())
+  updatedAt                   DateTime  @map("updated_at") @updatedAt
+
+  @@index([country])
+  @@index([qualityScore])
+  @@index([collectedAt])
+  @@map("opportunities_processed")
+}
+
+model Sector {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  keywords    String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("sectors")
+}
+
+model Country {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  code      String?  @db.VarChar(3)
+  region    String?  @db.VarChar(100)
+  keywords  String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("countries")
 }

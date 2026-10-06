@@ -1,3 +1,4 @@
+// src/opportunites/opportunites.service.ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { OpportuniteRepository } from './repositories/opportunite.repository';
 import { CreateOpportuniteDto } from './dto/create-opportunite.dto';
@@ -8,7 +9,7 @@ import { OrigineOpportunite } from '../generated/prisma/enums';
 import { SearchOpportunitesQueryDto } from './dto/search-opportunites-query.dto';
 
 @Injectable()
-export class OpportunitesService {
+export class OpportunitiesService {
   constructor(private readonly opportuniteRepository: OpportuniteRepository) {}
 
   async listOpportunites(query: ListOpportunitesQueryDto) {
@@ -26,7 +27,10 @@ export class OpportunitesService {
       take: limit,
     });
 
-    return { items, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    return {
+      items,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async getById(id: string) {
@@ -67,8 +71,9 @@ export class OpportunitesService {
   async restore(id: string) {
     const opp = await this.opportuniteRepository.findByIdIncludingDeleted(id);
     if (!opp) throw new NotFoundException('Opportunité introuvable');
-    if (!opp.supprimeLe) throw new BadRequestException("Cette opportunité n'est pas supprimée");
-
+    if (!opp.supprimeLe) {
+      throw new BadRequestException("Cette opportunité n'est pas supprimée");
+    }
     return this.opportuniteRepository.restore(id);
   }
 
@@ -112,6 +117,9 @@ export class OpportunitesService {
       take: limit,
     });
 
-    return { items, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    return {
+      items,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 }

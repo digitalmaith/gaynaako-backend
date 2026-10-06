@@ -1,13 +1,13 @@
-// src/opportunites/opportunites-public.controller.ts
+// src/opportunites/controller/opportunites-public.controller.ts
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { OpportunitesService } from '../opportunites.service';
+import { OpportunitiesService } from '../opportunites.service';
 import { SearchOpportunitesQueryDto } from '../dto/search-opportunites-query.dto';
 
 @ApiTags('opportunites')
 @Controller('opportunites')
 export class OpportunitesPublicController {
-  constructor(private readonly opportunitesService: OpportunitesService) {}
+  constructor(private readonly opportunitesService: OpportunitiesService) {}
 
   @Get()
   search(@Query() query: SearchOpportunitesQueryDto) {
