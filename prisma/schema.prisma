@@ -1,3 +1,15 @@
+// Workflow : modifier ce schéma, puis `npx prisma migrate dev --name <nom>`.
+//
+// Les opportunités proviennent de DEUX sources distinctes :
+//   1. `opportunites`            -> créées par admin/users
+//   2. `opportunities_processed` -> issues du scraper
+//
+// Les RECOMMANDATIONS pointent uniquement vers `opportunities_processed`.
+//
+// Les tables du scraper (`opportunities_processed`, `sectors`, `countries`) sont
+// décrites ici. Si le scraper modifie leur structure, reporter le changement
+// dans ce schéma et créer une migration.
+
 generator client {
   provider     = "prisma-client"
   output       = "../src/generated/prisma"
@@ -244,14 +256,6 @@ model AdministrateurProfile {
 }
 
 // ============================================================
-// TABLES PIVOT (remplacent String[] Postgres)
-// ============================================================
-
-
-
-
-
-// ============================================================
 // RÉFÉRENTIELS
 // ============================================================
 
@@ -328,9 +332,8 @@ model Opportunite {
   administrateurId String?
   administrateur   AdministrateurProfile? @relation("AdminGereOpportunite", fields: [administrateurId], references: [id])
 
-  candidatures    Candidature[]
-  favoris         Favori[]
-  recommandations Recommandation[]
+  candidatures Candidature[]
+  favoris      Favori[]
 
   @@map("opportunites")
 }
@@ -372,14 +375,17 @@ model Favori {
 model Recommandation {
   id              String   @id @default(uuid())
   scorePertinence Float
+  methodeMatching String   @default("ALGORITHMIQUE")
   dateGeneration  DateTime @default(now())
 
   utilisateurId String
   utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
-  opportuniteId String
-  opportunite   Opportunite @relation(fields: [opportuniteId], references: [id], onDelete: Cascade)
+  /// Cible unique : opportunité issue du scraper (`opportunities_processed`)
+  opportunityProcessedId String               @db.VarChar(12)
+  opportunityProcessed   OpportunityProcessed @relation(fields: [opportunityProcessedId], references: [id], onDelete: Cascade)
 
+  @@unique([utilisateurId, opportunityProcessedId])
   @@map("recommandations")
 }
 
@@ -399,14 +405,15 @@ model ChatbotConversation {
 }
 
 model ChatMessage {
-  id         String     @id @default(uuid())
-  contenu    String     @db.Text
-  expediteur Expediteur
-  horodatage DateTime   @default(now())
-
+  seq            Int                 @id @default(autoincrement())
+  id             String              @unique @default(uuid())
+  contenu        String              @db.Text
+  expediteur     Expediteur
+  horodatage     DateTime            @default(now()) @db.DateTime(3)
   conversationId String
   conversation   ChatbotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
+  @@index([conversationId, seq])
   @@map("chat_messages")
 }
 
@@ -532,7 +539,7 @@ model Transaction {
 }
 
 // ============================================================
-// TABLES IA/SCRAPER (hors Prisma, mais reconnues pour éviter les DROP)
+// TABLES IA/SCRAPER
 // ============================================================
 
 model OpportunityProcessed {
@@ -574,7 +581,9 @@ model OpportunityProcessed {
   nlpProcessedAt              DateTime? @map("nlp_processed_at")
   collectedAt                 DateTime  @map("collected_at") @default(now())
   createdAt                   DateTime  @map("created_at") @default(now())
-  updatedAt                   DateTime  @map("updated_at") @updatedAt
+  updatedAt                   DateTime  @default(now()) @map("updated_at") @updatedAt
+
+  recommandations Recommandation[]
 
   @@index([country])
   @@index([qualityScore])
