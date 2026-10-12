@@ -15,6 +15,7 @@ import { FavorisModule } from './favoris/favoris.module';
 import { AbonnementsModule } from './abonnements/abonnements.module';
 import { ChatModule } from './chat/chat.module';
 import { RecommandationsModule } from './recommandations/recommandations.module';
+import { PipelineModule } from './admin/pipeline/pipeline.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { RecommandationsModule } from './recommandations/recommandations.module'
     AbonnementsModule,
     ChatModule,
     RecommandationsModule,
+    PipelineModule,
   ],
   providers: [
     {

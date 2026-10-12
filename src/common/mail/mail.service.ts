@@ -90,4 +90,38 @@ Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.`;
       firstName,
     );
   }
+
+  /**
+   * Envoi d'un email HTML libre (hors template OTP).
+   * Utilisé pour les notifications (recommandations, alertes, etc.)
+   */
+  async sendHtml(params: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }): Promise<void> {
+    const { to, subject, html, text } = params;
+
+    try {
+      await this.transporter.sendMail({
+        from: this.config.getOrThrow<string>('SMTP_FROM'),
+        replyTo: this.config.getOrThrow<string>('SMTP_USER'),
+        to,
+        subject,
+        html,
+        text:
+          text ??
+          html
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim(),
+      });
+
+      this.logger.log(`Email HTML envoyé avec succès à ${to}`);
+    } catch (err: unknown) {
+      this.logger.error(`Échec envoi email HTML à ${to}`, err);
+      throw err;
+    }
+  }
 }
