@@ -1,0 +1,573 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model RefreshToken {
+  id            String      @id @default(uuid())
+  tokenHash     String      @unique
+  utilisateurId String
+  expiresAt     DateTime
+  revoked       Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([utilisateurId])
+  @@map("refresh_tokens")
+}
+
+model PendingRegistration {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  nom           String
+  prenom        String
+  motDePasse    String
+  role          RoleUtilisateur
+  donneesProfil String          @db.LongText
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@map("pending_registrations")
+}
+
+model OtpVerification {
+  id        String     @id @default(uuid())
+  email     String
+  codeHash  String
+  purpose   OtpPurpose
+  expiresAt DateTime
+  attempts  Int        @default(0)
+  consumed  Boolean    @default(false)
+  createdAt DateTime   @default(now())
+
+  @@index([email, purpose])
+  @@map("otp_verifications")
+}
+
+model Utilisateur {
+  id              String                 @id @default(uuid())
+  email           String                 @unique
+  motDePasse      String
+  nom             String
+  prenom          String
+  role            RoleUtilisateur
+  statut          StatutUtilisateur      @default(ACTIF)
+  dateCreation    DateTime               @default(now())
+  supprimeLe      DateTime?
+  abonnements     Abonnement[]
+  administrateur  AdministrateurProfile?
+  candidatures    Candidature[]
+  conversations   ChatbotConversation[]
+  documents       DocumentUtilisateur[]
+  entrepreneur    EntrepreneurProfile?
+  favoris         Favori[]
+  notifications   Notification[]
+  ong             OngProfile?
+  pme             PmeProfile?
+  recommandations Recommandation[]
+  refreshTokens   RefreshToken[]
+
+  @@map("utilisateurs")
+}
+
+model EntrepreneurProfile {
+  id               String      @id @default(uuid())
+  utilisateurId    String      @unique
+  secteurId        String
+  paysId           String
+  domaineExpertise String
+  objectifs        String?     @db.Text
+  pays             Pays        @relation(fields: [paysId], references: [id])
+  secteur          Secteur     @relation(fields: [secteurId], references: [id])
+  utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([paysId], map: "entrepreneur_profiles_paysId_fkey")
+  @@index([secteurId], map: "entrepreneur_profiles_secteurId_fkey")
+  @@map("entrepreneur_profiles")
+}
+
+model PmeProfile {
+  id            String      @id @default(uuid())
+  utilisateurId String      @unique
+  nomEntreprise String
+  logoUrl       String?
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  secteurs      Secteur[]   @relation("pmeprofiletosecteur")
+
+  @@map("pme_profiles")
+}
+
+model OngProfile {
+  id                    String                @id @default(uuid())
+  utilisateurId         String                @unique
+  nomOrganisation       String
+  mission               String?               @db.Text
+  logoUrl               String?
+  utilisateur           Utilisateur           @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  domaines_intervention DomaineIntervention[] @relation("domaineinterventiontoongprofile")
+
+  @@map("ong_profiles")
+}
+
+model AdministrateurProfile {
+  id                 String            @id @default(uuid())
+  utilisateurId      String            @unique
+  niveauAcces        String            @default("STANDARD")
+  utilisateur        Utilisateur       @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  emetteurs          Emetteur[]
+  journaux           JournalActivite[]
+  opportunitesGerees Opportunite[]     @relation("AdminGereOpportunite")
+
+  @@map("administrateur_profiles")
+}
+
+model Secteur {
+  id            String                @id @default(uuid())
+  nom           String                @unique
+  entrepreneurs EntrepreneurProfile[]
+  opportunites  Opportunite[]
+  pme_profiles  PmeProfile[]          @relation("pmeprofiletosecteur")
+
+  @@map("secteurs")
+}
+
+model Pays {
+  id            String                @id @default(uuid())
+  nom           String                @unique
+  code          String?               @unique
+  entrepreneurs EntrepreneurProfile[]
+
+  @@map("pays")
+}
+
+model DomaineIntervention {
+  id           String       @id @default(uuid())
+  nom          String       @unique
+  ong_profiles OngProfile[] @relation("domaineinterventiontoongprofile")
+
+  @@map("domaines_intervention")
+}
+
+model Emetteur {
+  id                String                @id @default(uuid())
+  nom               String
+  url               String                @db.Text
+  type              TypeEmetteur
+  frequenceCollecte String
+  dernierScan       DateTime?
+  statut            StatutEmetteur        @default(ACTIF)
+  administrateurId  String
+  administrateur    AdministrateurProfile @relation(fields: [administrateurId], references: [id])
+  opportunites      Opportunite[]
+
+  @@index([administrateurId], map: "emetteurs_administrateurId_fkey")
+  @@map("emetteurs")
+}
+
+model Opportunite {
+  id                  String                 @id @default(uuid())
+  externalId          String?                @unique
+  titre               String
+  description         String                 @db.Text
+  type                TypeOpportunite
+  pays                String
+  dateLimite          DateTime
+  criteresEligibilite String?                @db.Text
+  origine             OrigineOpportunite     @default(MANUELLE)
+  dateCreation        DateTime               @default(now())
+  supprimeLe          DateTime?
+  secteurId           String
+  emetteurId          String?
+  administrateurId    String?
+  candidatures        Candidature[]
+  favoris             Favori[]
+  administrateur      AdministrateurProfile? @relation("AdminGereOpportunite", fields: [administrateurId], references: [id])
+  emetteur            Emetteur?              @relation(fields: [emetteurId], references: [id])
+  secteur             Secteur                @relation(fields: [secteurId], references: [id])
+
+  @@index([administrateurId], map: "opportunites_administrateurId_fkey")
+  @@index([emetteurId], map: "opportunites_emetteurId_fkey")
+  @@index([secteurId], map: "opportunites_secteurId_fkey")
+  @@map("opportunites")
+}
+
+model Candidature {
+  id             String            @id @default(uuid())
+  statut         StatutCandidature @default(BROUILLON)
+  dateSoumission DateTime?
+  dateCreation   DateTime          @default(now())
+  utilisateurId  String
+  opportuniteId  String
+  opportunite    Opportunite       @relation(fields: [opportuniteId], references: [id], onDelete: Cascade)
+  utilisateur    Utilisateur       @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@unique([utilisateurId, opportuniteId])
+  @@index([opportuniteId], map: "candidatures_opportuniteId_fkey")
+  @@map("candidatures")
+}
+
+model Favori {
+  id            String      @id @default(uuid())
+  dateAjout     DateTime    @default(now())
+  utilisateurId String
+  opportuniteId String
+  opportunite   Opportunite @relation(fields: [opportuniteId], references: [id], onDelete: Cascade)
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@unique([utilisateurId, opportuniteId])
+  @@index([opportuniteId], map: "favoris_opportuniteId_fkey")
+  @@map("favoris")
+}
+
+model Recommandation {
+  id                     String                @id @default(uuid())
+  scorePertinence        Float
+  methodeMatching        String                @default("ALGORITHMIQUE")
+  dateGeneration         DateTime              @default(now())
+  utilisateurId          String
+  /// Cible unique : opportunité issue du scraper (`opportunities_processed`)
+  opportunityProcessedId String?               @db.VarChar(36)
+  opportunityProcessed   OpportunityProcessed? @relation(fields: [opportunityProcessedId], references: [id], onDelete: Cascade)
+  utilisateur            Utilisateur           @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@unique([utilisateurId, opportunityProcessedId])
+  @@index([opportunityProcessedId], map: "recommandations_opportunityProcessedId_fkey")
+  @@map("recommandations")
+}
+
+model ChatbotConversation {
+  id             String        @id @default(uuid())
+  dateDebut      DateTime      @default(now())
+  utilisateurId  String?
+  dateMaj        DateTime      @updatedAt
+  nombreMessages Int           @default(0)
+  titre          String        @default("Nouvelle conversation")
+  messages       ChatMessage[]
+  utilisateur    Utilisateur?  @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([utilisateurId])
+  @@map("chatbot_conversations")
+}
+
+model ChatMessage {
+  seq            Int                 @id @default(autoincrement())
+  id             String              @unique @default(uuid())
+  contenu        String              @db.Text
+  expediteur     Expediteur
+  horodatage     DateTime            @default(now())
+  conversationId String
+  conversation   ChatbotConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, seq])
+  @@map("chat_messages")
+}
+
+model Notification {
+  id            String            @id @default(uuid())
+  canal         CanalNotification
+  contenu       String            @db.Text
+  dateEnvoi     DateTime          @default(now())
+  envoyee       Boolean           @default(false)
+  utilisateurId String
+  utilisateur   Utilisateur       @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([utilisateurId], map: "notifications_utilisateurId_fkey")
+  @@map("notifications")
+}
+
+model JournalActivite {
+  id               String                @id @default(uuid())
+  action           String
+  dateHeure        DateTime              @default(now())
+  administrateurId String
+  administrateur   AdministrateurProfile @relation(fields: [administrateurId], references: [id])
+
+  @@index([administrateurId], map: "journaux_activite_administrateurId_fkey")
+  @@map("journaux_activite")
+}
+
+model DocumentUtilisateur {
+  id             String       @id @default(uuid())
+  utilisateurId  String
+  type           TypeDocument
+  libelle        String
+  publicId       String
+  resourceType   String
+  nomFichier     String
+  mimeType       String
+  tailleOctets   Int
+  dateExpiration DateTime?
+  dateAjout      DateTime     @default(now())
+  utilisateur    Utilisateur  @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+
+  @@index([utilisateurId])
+  @@map("documents_utilisateur")
+}
+
+model Plan {
+  id              String               @id @default(uuid())
+  nom             String               @unique
+  description     String?              @db.Text
+  prixMensuel     Int
+  prixAnnuel      Int
+  actif           Boolean              @default(true)
+  ordreAffichage  Int                  @default(0)
+  dateCreation    DateTime             @default(now())
+  abonnements     Abonnement[]
+  fonctionnalites PlanFonctionnalite[]
+
+  @@map("plans")
+}
+
+model PlanFonctionnalite {
+  id     String @id @default(uuid())
+  planId String
+  cle    String
+  valeur String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, cle])
+  @@index([planId])
+  @@map("plan_fonctionnalites")
+}
+
+model Abonnement {
+  id                 String           @id @default(uuid())
+  utilisateurId      String
+  planId             String
+  cycle              CycleFacturation
+  statut             StatutAbonnement @default(EN_ATTENTE)
+  dateDebut          DateTime?
+  dateFin            DateTime?
+  renouvellementAuto Boolean          @default(true)
+  dateCreation       DateTime         @default(now())
+  supprimeLe         DateTime?
+  plan               Plan             @relation(fields: [planId], references: [id])
+  utilisateur        Utilisateur      @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  transactions       Transaction[]
+
+  @@index([utilisateurId])
+  @@index([planId])
+  @@index([statut])
+  @@map("abonnements")
+}
+
+model Transaction {
+  id               String              @id @default(uuid())
+  abonnementId     String
+  fournisseur      FournisseurPaiement
+  referenceExterne String?             @unique
+  montant          Int
+  statut           StatutTransaction   @default(EN_ATTENTE)
+  dateCreation     DateTime            @default(now())
+  dateConfirmation DateTime?
+  metadonnees      String?             @db.LongText
+  abonnement       Abonnement          @relation(fields: [abonnementId], references: [id], onDelete: Cascade)
+
+  @@index([abonnementId])
+  @@index([statut])
+  @@map("transactions")
+}
+
+model OpportunityProcessed {
+  old_id                      String?          @db.VarChar(12)
+  id                          String           @id @db.VarChar(36)
+  sourceName                  String           @map("source_name") @db.VarChar(255)
+  sourceType                  String           @map("source_type")
+  title                       String           @db.VarChar(300)
+  description                 String?          @db.Text
+  url                         String           @db.Text
+  dateOriginal                String?          @map("date_original") @db.VarChar(255)
+  dateNormalized              DateTime?        @map("date_normalized") @db.Date
+  country                     String?          @db.VarChar(100)
+  sectorId                    Int?             @map("sector_id")
+  sectors                     String?          @db.Text
+  opportunityType             String?          @default("autre") @map("opportunity_type")
+  organization                String?          @db.VarChar(200)
+  hasDescription              String?          @default("non") @map("has_description")
+  hasDate                     String?          @default("non") @map("has_date")
+  qualityScore                Int?             @default(0) @map("quality_score")
+  targetAudience              String?          @map("target_audience") @db.VarChar(100)
+  experienceRequired          String?          @map("experience_required") @db.VarChar(50)
+  budgetRange                 String?          @map("budget_range") @db.VarChar(100)
+  urgency                     String?          @db.VarChar(20)
+  complexityLevel             Int?             @default(1) @map("complexity_level")
+  suggestedProfiles           String?          @map("suggested_profiles") @db.Text
+  deadline                    DateTime?        @db.Date
+  beneficiairesCibles         String?          @map("beneficiaires_cibles") @db.VarChar(500)
+  criteresEligibilite         String?          @map("criteres_eligibilite") @db.Text
+  montantFinancement          String?          @map("montant_financement") @db.VarChar(300)
+  documentsNecessaires        String?          @map("documents_necessaires") @db.Text
+  informationsComplementaires String?          @map("informations_complementaires") @db.Text
+  nlpAmounts                  String?          @map("nlp_amounts") @db.LongText
+  nlpDeadlines                String?          @map("nlp_deadlines") @db.LongText
+  nlpOrganizations            String?          @map("nlp_organizations") @db.LongText
+  nlpEmails                   String?          @map("nlp_emails") @db.LongText
+  nlpPhones                   String?          @map("nlp_phones") @db.LongText
+  nlpKeywords                 String?          @map("nlp_keywords") @db.LongText
+  nlpQualityScore             Int?             @default(0) @map("nlp_quality_score")
+  nlpProcessedAt              DateTime?        @map("nlp_processed_at")
+  collectedAt                 DateTime         @default(now()) @map("collected_at")
+  createdAt                   DateTime         @default(now()) @map("created_at")
+  updatedAt                   DateTime         @default(now()) @updatedAt @map("updated_at")
+  recommandations             Recommandation[]
+
+  @@index([country])
+  @@index([qualityScore])
+  @@index([collectedAt])
+  @@map("opportunities_processed")
+}
+
+model Sector {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  keywords    String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("sectors")
+}
+
+model Country {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  code      String?  @db.VarChar(3)
+  region    String?  @db.VarChar(100)
+  keywords  String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("countries")
+}
+
+model SourceScraping {
+  id             String                @id @default(uuid()) @db.VarChar(36)
+  nom            String
+  url            String                @db.Text
+  type           sources_scraping_type @default(html)
+  actif          Boolean               @default(true)
+  selectors      String?               @db.LongText
+  pagination     String?               @db.LongText
+  rateLimitMs    Int                   @default(3000) @map("rate_limit_ms")
+  apiConfig      String?               @map("api_config") @db.LongText
+  dernierScan    DateTime?             @map("dernier_scan")
+  dernierStatut  String?               @map("dernier_statut") @db.VarChar(50)
+  dernierMessage String?               @map("dernier_message") @db.Text
+  nbOpportunites Int                   @default(0) @map("nb_opportunites")
+  dateCreation   DateTime              @default(now()) @map("date_creation")
+  dateMaj        DateTime              @default(now()) @updatedAt @map("date_maj")
+
+  @@index([actif], map: "idx_sources_actif")
+  @@map("sources_scraping")
+}
+
+enum RoleUtilisateur {
+  ENTREPRENEUR
+  PME
+  ONG
+  ADMINISTRATEUR
+}
+
+enum StatutUtilisateur {
+  EN_ATTENTE
+  ACTIF
+  SUSPENDU
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum TypeOpportunite {
+  FINANCEMENT
+  SUBVENTION
+  APPEL_OFFRE
+  CONCOURS
+  PROGRAMME_ACCELERATION
+}
+
+enum StatutCandidature {
+  BROUILLON
+  SOUMISE
+  EN_COURS
+  ACCEPTEE
+  REJETEE
+}
+
+enum TypeEmetteur {
+  SITE_WEB
+  API
+  RESEAU_SOCIAL
+  PORTAIL_INSTITUTIONNEL
+}
+
+enum StatutEmetteur {
+  ACTIF
+  INACTIF
+}
+
+enum CanalNotification {
+  EMAIL
+  WHATSAPP
+}
+
+enum Expediteur {
+  UTILISATEUR
+  BOT
+}
+
+enum OrigineOpportunite {
+  MANUELLE
+  IA
+}
+
+enum TypeDocument {
+  CV
+  PIECE_IDENTITE
+  REGISTRE_COMMERCE
+  NINEA
+  STATUTS_ENTREPRISE
+  ATTESTATION_FISCALE
+  ATTESTATION_SOCIALE
+  JUSTIFICATIF_DOMICILE
+  ATTESTATION
+  AUTRE
+}
+
+enum CycleFacturation {
+  MENSUEL
+  ANNUEL
+}
+
+enum StatutAbonnement {
+  EN_ATTENTE
+  ACTIF
+  EXPIRE
+  ANNULE
+  ECHEC_PAIEMENT
+}
+
+enum StatutTransaction {
+  EN_ATTENTE
+  REUSSIE
+  ECHOUEE
+  REMBOURSEE
+}
+
+enum FournisseurPaiement {
+  WAVE
+  ORANGE_MONEY
+}
+
+enum sources_scraping_type {
+  html
+  puppeteer
+  api
+}
+
+

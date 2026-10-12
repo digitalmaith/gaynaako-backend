@@ -6,9 +6,9 @@
 //
 // Les RECOMMANDATIONS pointent uniquement vers `opportunities_processed`.
 //
-// Les tables du scraper (`opportunities_processed`, `sectors`, `countries`) sont
-// décrites ici. Si le scraper modifie leur structure, reporter le changement
-// dans ce schéma et créer une migration.
+// Les tables du scraper (`opportunities_processed`, `sources_scraping`, `sectors`,
+// `countries`) sont décrites ici. Si leur structure change en SQL, reporter le
+// changement dans ce schéma et créer une migration.
 
 generator client {
   provider     = "prisma-client"
@@ -121,6 +121,12 @@ enum StatutTransaction {
 enum FournisseurPaiement {
   WAVE
   ORANGE_MONEY
+}
+
+enum TypeSourceScraping {
+  html
+  puppeteer
+  api
 }
 
 // ============================================================
@@ -381,8 +387,8 @@ model Recommandation {
   utilisateurId String
   utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
-  /// Cible unique : opportunité issue du scraper (`opportunities_processed`)
-  opportunityProcessedId String               @db.VarChar(12)
+  /// Cible unique : opportunité issue du scraper (`opportunities_processed.id`, UUID)
+  opportunityProcessedId String               @db.VarChar(36)
   opportunityProcessed   OpportunityProcessed @relation(fields: [opportunityProcessedId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, opportunityProcessedId])
@@ -543,7 +549,8 @@ model Transaction {
 // ============================================================
 
 model OpportunityProcessed {
-  id                          String    @id @db.VarChar(12)
+  id                          String    @id @db.VarChar(36)
+  oldId                       String?   @map("old_id") @db.VarChar(12)
   sourceName                  String    @map("source_name") @db.VarChar(255)
   sourceType                  String    @map("source_type")
   title                       String    @db.VarChar(300)
@@ -589,6 +596,31 @@ model OpportunityProcessed {
   @@index([qualityScore])
   @@index([collectedAt])
   @@map("opportunities_processed")
+}
+
+model SourceScraping {
+  id             String             @id @default(uuid()) @db.VarChar(36)
+  nom            String             @db.VarChar(191)
+  url            String             @db.Text
+  type           TypeSourceScraping @default(html)
+  actif          Boolean            @default(true)
+
+  selectors      Json?
+  pagination     Json?
+  rateLimitMs    Int                @default(3000) @map("rate_limit_ms")
+
+  apiConfig      Json?              @map("api_config")
+
+  dernierScan    DateTime?          @map("dernier_scan")
+  dernierStatut  String?            @map("dernier_statut") @db.VarChar(50)
+  dernierMessage String?            @map("dernier_message") @db.Text
+  nbOpportunites Int                @default(0) @map("nb_opportunites")
+
+  dateCreation   DateTime           @default(now()) @map("date_creation")
+  dateMaj        DateTime           @default(now()) @updatedAt @map("date_maj")
+
+  @@index([actif], map: "idx_sources_actif")
+  @@map("sources_scraping")
 }
 
 model Sector {
