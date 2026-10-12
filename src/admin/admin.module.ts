@@ -9,9 +9,13 @@ import { AdminEmetteursService } from './emetteur/admin-emetteurs.service';
 import { AdminStatsController } from './stats/admin-stats.controller';
 import { StatsRepository } from './repositories/stats.repository';
 import { AdminStatsService } from './stats/admin-stats.service';
+import { SourcesScrapingModule } from './sources-scraping/sources-scraping.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [
+    AuthModule,
+    SourcesScrapingModule, // ⬅️ ICI, dans imports
+  ],
   controllers: [AdminUsersController, AdminEmetteursController, AdminStatsController],
   providers: [
     AdminUsersService,
@@ -20,6 +24,7 @@ import { AdminStatsService } from './stats/admin-stats.service';
     EmetteurRepository,
     StatsRepository,
     AdminStatsService,
+    // ⬅️ SourcesScrapingModule retiré d'ici
   ],
 })
 export class AdminModule {}
