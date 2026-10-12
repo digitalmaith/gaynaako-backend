@@ -9,6 +9,9 @@
 // Les tables du scraper (`opportunities_processed`, `sources_scraping`, `sectors`,
 // `countries`) sont décrites ici. Si leur structure change en SQL, reporter le
 // changement dans ce schéma et créer une migration.
+//
+// ATTENTION : ne jamais lancer `prisma db pull` sans `--print`. Sur MariaDB, il
+// réécrit ce fichier et transforme tous les champs Json en String.
 
 generator client {
   provider     = "prisma-client"
@@ -384,6 +387,10 @@ model Recommandation {
   methodeMatching String   @default("ALGORITHMIQUE")
   dateGeneration  DateTime @default(now())
 
+  /// Notification email : false tant que l'utilisateur n'a pas été prévenu
+  notifiee         Boolean   @default(false)
+  dateNotification DateTime? @map("date_notification")
+
   utilisateurId String
   utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
@@ -392,6 +399,7 @@ model Recommandation {
   opportunityProcessed   OpportunityProcessed @relation(fields: [opportunityProcessedId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, opportunityProcessedId])
+  @@index([notifiee, dateNotification], map: "idx_reco_notifiee")
   @@map("recommandations")
 }
 
