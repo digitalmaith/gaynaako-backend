@@ -191,6 +191,8 @@ model Utilisateur {
   statut       StatutUtilisateur @default(ACTIF)
   dateCreation DateTime          @default(now())
   supprimeLe   DateTime?
+  avatarUrl    String?  @map("avatar_url") @db.Text
+  telephone    String?  @db.VarChar(30)
 
   entrepreneur   EntrepreneurProfile?
   pme            PmeProfile?
@@ -219,6 +221,8 @@ model EntrepreneurProfile {
 
   paysId String
   pays   Pays   @relation(fields: [paysId], references: [id])
+
+  logoUrl String? @map("logo_url") @db.Text
 
   domaineExpertise String
   objectifs        String? @db.Text
@@ -341,7 +345,7 @@ model Opportunite {
   administrateurId String?
   administrateur   AdministrateurProfile? @relation("AdminGereOpportunite", fields: [administrateurId], references: [id])
 
-  candidatures Candidature[]
+  //candidatures Candidature[]
   favoris      Favori[]
 
   @@map("opportunites")
@@ -360,8 +364,9 @@ model Candidature {
   utilisateurId String
   utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
 
-  opportuniteId String
-  opportunite   Opportunite @relation(fields: [opportuniteId], references: [id], onDelete: Cascade)
+  /// Cible : opportunité issue du scraper (`opportunities_processed.id`, UUID)
+  opportuniteId String               @db.VarChar(36)
+  opportunite   OpportunityProcessed @relation(fields: [opportuniteId], references: [id], onDelete: Cascade)
 
   @@unique([utilisateurId, opportuniteId])
   @@map("candidatures")
@@ -599,6 +604,7 @@ model OpportunityProcessed {
   updatedAt                   DateTime  @default(now()) @map("updated_at") @updatedAt
 
   recommandations Recommandation[]
+  candidatures    Candidature[]
 
   @@index([country])
   @@index([qualityScore])

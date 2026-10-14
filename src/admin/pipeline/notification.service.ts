@@ -53,11 +53,12 @@ export class NotificationService {
           prenom: user.prenom || user.nom || 'Utilisateur',
           nbRecos: recos.length,
           recos: recos.map((r) => ({
+            id: r.opportunite.id,
             titre: r.opportunite.titre,
             pays: r.opportunite.pays ?? 'Non précisé',
             secteurs: r.opportunite.secteurs ?? '',
             organisation: r.opportunite.organisation ?? 'Source inconnue',
-            url: r.opportunite.url,
+            url: r.opportunite.url ?? '',
             scorePourcentage: Math.round(r.scorePertinence * 100),
             deadline: r.opportunite.deadline,
           })),
@@ -122,6 +123,7 @@ export class NotificationService {
       include: {
         opportunityProcessed: {
           select: {
+            id: true, // ⬅️ AJOUTÉ
             title: true,
             country: true,
             sectors: true,
@@ -140,6 +142,7 @@ export class NotificationService {
         id: string;
         scorePertinence: number;
         opportunite: {
+          id: string;
           titre: string;
           pays: string | null;
           secteurs: string | null;
@@ -156,6 +159,7 @@ export class NotificationService {
         id: r.id,
         scorePertinence: r.scorePertinence,
         opportunite: {
+          id: r.opportunityProcessed.id,
           titre: r.opportunityProcessed.title,
           pays: r.opportunityProcessed.country,
           secteurs: r.opportunityProcessed.sectors,

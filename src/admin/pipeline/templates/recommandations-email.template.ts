@@ -1,4 +1,5 @@
 interface RecoEmail {
+  id: string;
   titre: string;
   pays: string;
   secteurs: string;
@@ -18,6 +19,9 @@ export function buildRecommandationsEmail(params: RecoEmailParams): string {
   const { prenom, nbRecos, recos } = params;
   const year = new Date().getFullYear();
 
+  // URL du frontend (configurable via .env)
+  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+
   const formatDate = (date: Date | null) =>
     date
       ? new Date(date).toLocaleDateString('fr-FR', {
@@ -27,7 +31,10 @@ export function buildRecommandationsEmail(params: RecoEmailParams): string {
         })
       : 'Non précisée';
 
-  const renderReco = (r: RecoEmail, i: number) => `
+  const renderReco = (r: RecoEmail, i: number) => {
+    const detailUrl = `${frontendUrl}/app/opportunities/${r.id}`;
+
+    return `
     <tr>
       <td style="padding:0 0 20px 0;">
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
@@ -46,7 +53,7 @@ export function buildRecommandationsEmail(params: RecoEmailParams): string {
                 </tr>
                 <tr>
                   <td style="padding-bottom:10px;">
-                    <a href="${r.url ?? '#'}" style="color:#0f172a;font-size:16px;font-weight:600;text-decoration:none;line-height:1.4;">
+                    <a href="${detailUrl}" style="color:#0f172a;font-size:16px;font-weight:600;text-decoration:none;line-height:1.4;">
                       ${r.titre}
                     </a>
                   </td>
@@ -67,7 +74,7 @@ export function buildRecommandationsEmail(params: RecoEmailParams): string {
                 }
                 <tr>
                   <td>
-                    <a href="${r.url ?? '#'}" style="display:inline-block;background:#0f172a;color:#ffffff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:8px;text-decoration:none;">
+                    <a href="${detailUrl}" style="display:inline-block;background:#0f172a;color:#ffffff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:8px;text-decoration:none;">
                       Voir l'opportunité →
                     </a>
                   </td>
@@ -79,6 +86,7 @@ export function buildRecommandationsEmail(params: RecoEmailParams): string {
       </td>
     </tr>
   `;
+  };
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -118,7 +126,7 @@ export function buildRecommandationsEmail(params: RecoEmailParams): string {
 
           <tr>
             <td style="padding:16px 0 24px 0;text-align:center;">
-              <a href="${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/dashboard" style="display:inline-block;background:#3b82f6;color:#ffffff;font-size:14px;font-weight:600;padding:14px 28px;border-radius:10px;text-decoration:none;">
+              <a href="${frontendUrl}/app/dashboard" style="display:inline-block;background:#3b82f6;color:#ffffff;font-size:14px;font-weight:600;padding:14px 28px;border-radius:10px;text-decoration:none;">
                 Voir toutes mes recommandations
               </a>
             </td>

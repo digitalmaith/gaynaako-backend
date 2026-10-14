@@ -1,4 +1,3 @@
-// src/users/users.service.ts
 import {
   BadRequestException,
   Injectable,
@@ -21,17 +20,61 @@ export class UsersService {
     private readonly cloudinary: CloudinaryService,
   ) {}
 
-  private sanitize<T extends { motDePasse: string }>(user: T) {
-    const rest: Record<string, unknown> = { ...user };
-    delete rest.motDePasse;
-    return rest as Omit<T, 'motDePasse'>;
+  async getMyProfile(utilisateurId: string) {
+    const user = await this.utilisateurRepository.findByIdWithFullProfile(utilisateurId);
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
+
+    const { motDePasse, abonnements, documents, statistiques, ...rest } = user;
+    void motDePasse;
+
+    // Normaliser l'abonnement (1 seul)
+    const abonnement = abonnements[0]
+      ? {
+          id: abonnements[0].id,
+          statut: abonnements[0].statut,
+          cycle: abonnements[0].cycle,
+          dateDebut: abonnements[0].dateDebut,
+          dateFin: abonnements[0].dateFin,
+          renouvellementAuto: abonnements[0].renouvellementAuto,
+          plan: {
+            id: abonnements[0].plan.id,
+            nom: abonnements[0].plan.nom,
+            description: abonnements[0].plan.description,
+            prixMensuel: abonnements[0].plan.prixMensuel,
+            prixAnnuel: abonnements[0].plan.prixAnnuel,
+          },
+        }
+      : null;
+
+    // Documents masqués pour les admins
+    const documentsMapped =
+      rest.role === RoleUtilisateur.ADMINISTRATEUR
+        ? []
+        : documents.map((d) => ({
+            id: d.id,
+            type: d.type,
+            libelle: d.libelle,
+            nomFichier: d.nomFichier,
+            mimeType: d.mimeType,
+            tailleOctets: d.tailleOctets,
+            dateExpiration: d.dateExpiration,
+            dateAjout: d.dateAjout,
+            url: this.cloudinary.getSignedDocumentUrl(
+              d.publicId,
+              d.resourceType,
+              d.nomFichier.split('.').pop() ?? 'pdf',
+            ),
+          }));
+
+    return {
+      ...rest,
+      documents: documentsMapped,
+      abonnement,
+      statistiques,
+    };
   }
 
-  async getMyProfile(utilisateurId: string) {
-    const user = await this.utilisateurRepository.findByIdWithProfile(utilisateurId);
-    if (!user) throw new NotFoundException('Utilisateur introuvable');
-    return this.sanitize(user);
-  }
+  // ─── Profils spécifiques ──────────────────────────────────
 
   async updateEntrepreneurProfile(
     utilisateurId: string,
@@ -55,25 +98,45 @@ export class UsersService {
     return this.getMyProfile(utilisateurId);
   }
 
+  // ─── Logo (ENTREPRENEUR / PME / ONG) ──────────────────────
+
   async updateLogo(
     utilisateurId: string,
     role: string,
     logoFile: { buffer: Buffer; filename: string },
   ) {
-    if (role !== RoleUtilisateur.PME && role !== RoleUtilisateur.ONG) {
-      throw new BadRequestException(`Seuls les comptes PME et ONG ont un logo`);
+    const allowedRoles: string[] = [
+      RoleUtilisateur.ENTREPRENEUR,
+      RoleUtilisateur.PME,
+      RoleUtilisateur.ONG,
+    ];
+
+    if (!allowedRoles.includes(role)) {
+      throw new BadRequestException(`Les comptes ${role} n'ont pas de logo`);
     }
 
     const logoUrl = await this.cloudinary.uploadLogo(logoFile.buffer, logoFile.filename);
 
-    if (role === RoleUtilisateur.PME) {
+    if (role === RoleUtilisateur.ENTREPRENEUR) {
+      await this.utilisateurRepository.updateEntrepreneurLogo(utilisateurId, logoUrl);
+    } else if (role === RoleUtilisateur.PME) {
       await this.utilisateurRepository.updatePmeProfile(utilisateurId, { logoUrl });
-    } else {
+    } else if (role === RoleUtilisateur.ONG) {
       await this.utilisateurRepository.updateOngProfile(utilisateurId, { logoUrl });
     }
 
     return this.getMyProfile(utilisateurId);
   }
+
+  // ─── Avatar (tous les rôles) ──────────────────────────────
+
+  async updateAvatar(utilisateurId: string, avatarFile: { buffer: Buffer; filename: string }) {
+    const avatarUrl = await this.cloudinary.uploadLogo(avatarFile.buffer, avatarFile.filename);
+    await this.utilisateurRepository.updateAvatar(utilisateurId, avatarUrl);
+    return this.getMyProfile(utilisateurId);
+  }
+
+  // ─── Mot de passe ─────────────────────────────────────────
 
   async changePassword(utilisateurId: string, currentPassword: string, newPassword: string) {
     const user = await this.utilisateurRepository.findById(utilisateurId);
@@ -88,14 +151,18 @@ export class UsersService {
     return { message: 'Mot de passe modifié avec succès' };
   }
 
-  private assertRole(actual: string, expected: RoleUtilisateur): void {
-    if (actual !== expected) {
-      throw new BadRequestException(`Cette action est réservée aux comptes ${expected}`);
-    }
-  }
+  // ─── Identité ─────────────────────────────────────────────
 
   async updateIdentity(utilisateurId: string, dto: UpdateIdentityDto) {
     await this.utilisateurRepository.updateIdentity(utilisateurId, dto);
     return this.getMyProfile(utilisateurId);
+  }
+
+  // ─── Helper ───────────────────────────────────────────────
+
+  private assertRole(actual: string, expected: RoleUtilisateur): void {
+    if (actual !== expected) {
+      throw new BadRequestException(`Cette action est réservée aux comptes ${expected}`);
+    }
   }
 }

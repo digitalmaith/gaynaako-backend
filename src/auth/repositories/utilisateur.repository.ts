@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-
 import { RoleUtilisateur, StatutUtilisateur } from '../../generated/prisma/enums';
 
 interface EntrepreneurProfileInput {
@@ -29,42 +28,45 @@ interface AdministrateurProfileInput {
 }
 
 type ProfileInput =
-  | {
-      role: 'ENTREPRENEUR';
-      profile: EntrepreneurProfileInput;
-    }
-  | {
-      role: 'PME';
-      profile: PmeProfileInput;
-    }
-  | {
-      role: 'ONG';
-      profile: OngProfileInput;
-    }
-  | {
-      role: 'ADMINISTRATEUR';
-      profile: AdministrateurProfileInput;
-    };
+  | { role: 'ENTREPRENEUR'; profile: EntrepreneurProfileInput }
+  | { role: 'PME'; profile: PmeProfileInput }
+  | { role: 'ONG'; profile: OngProfileInput }
+  | { role: 'ADMINISTRATEUR'; profile: AdministrateurProfileInput };
 
-const PROFILE_INCLUDE = {
+const PROFILE_INCLUDE: Prisma.UtilisateurInclude = {
   entrepreneur: {
-    include: {
-      secteur: true,
-      pays: true,
-    },
+    include: { secteur: true, pays: true },
   },
   pme: {
-    include: {
-      secteurs: true,
-    },
+    include: { secteurs: true },
   },
   ong: {
-    include: {
-      domainesIntervention: true,
-    },
+    include: { domainesIntervention: true },
   },
   administrateur: true,
-} as const;
+};
+
+/**
+ * Include complet pour la page profil (/users/me) :
+ * - profil + relations
+ * - documents (triés par date)
+ * - abonnement actif (1 seul, le plus récent)
+ */
+const FULL_PROFILE_INCLUDE = {
+  ...PROFILE_INCLUDE,
+  documents: {
+    orderBy: { dateAjout: 'desc' },
+  },
+  abonnements: {
+    where: {
+      statut: 'ACTIF',
+      OR: [{ dateFin: null }, { dateFin: { gt: new Date() } }],
+    },
+    include: { plan: true },
+    orderBy: { dateCreation: 'desc' },
+    take: 1,
+  },
+} satisfies Prisma.UtilisateurInclude;
 
 export interface ListUsersFilters {
   role?: RoleUtilisateur;
@@ -79,121 +81,172 @@ export interface ListUsersFilters {
 export class UtilisateurRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  // ─── READ ─────────────────────────────────────────────────
+
   findByEmail(email: string) {
     return this.prisma.utilisateur.findUnique({
-      where: {
-        email,
-        supprimeLe: null,
-      },
+      where: { email, supprimeLe: null },
     });
   }
 
   findByEmailWithProfile(email: string) {
     return this.prisma.utilisateur.findUnique({
-      where: {
-        email,
-        supprimeLe: null,
-      },
+      where: { email, supprimeLe: null },
       include: PROFILE_INCLUDE,
     });
   }
 
   findById(id: string) {
     return this.prisma.utilisateur.findUnique({
-      where: {
-        id,
-        supprimeLe: null,
-      },
+      where: { id, supprimeLe: null },
     });
   }
 
   findByIdWithProfile(id: string) {
     return this.prisma.utilisateur.findUnique({
-      where: {
-        id,
-        supprimeLe: null,
-      },
+      where: { id, supprimeLe: null },
       include: PROFILE_INCLUDE,
     });
   }
 
+  /**
+   * Profil complet pour la page /users/me :
+   * - profil (entrepreneur/pme/ong/admin)
+   * - documents
+   * - abonnement actif + plan
+   * - statistiques (counts) + stats spécifiques admin
+   */
+  async findByIdWithFullProfile(id: string) {
+    const user = await this.prisma.utilisateur.findUnique({
+      where: { id, supprimeLe: null },
+      include: FULL_PROFILE_INCLUDE,
+    });
+
+    if (!user) return null;
+
+    const [candidatures, favoris, recommandations, documentsCount] = await Promise.all([
+      this.prisma.candidature.count({ where: { utilisateurId: id } }),
+      this.prisma.favori.count({ where: { utilisateurId: id } }),
+      this.prisma.recommandation.count({ where: { utilisateurId: id } }),
+      this.prisma.documentUtilisateur.count({ where: { utilisateurId: id } }),
+    ]);
+
+    let extraAdminStats: { opportunitesGerees: number; utilisateursGeres: number } | null = null;
+
+    if (user.role === 'ADMINISTRATEUR' && user.administrateur) {
+      const [opportunitesGerees, utilisateursGeres] = await Promise.all([
+        this.prisma.opportunite.count({
+          where: { administrateurId: user.administrateur.id },
+        }),
+        this.prisma.utilisateur.count({ where: { supprimeLe: null } }),
+      ]);
+      extraAdminStats = { opportunitesGerees, utilisateursGeres };
+    }
+
+    return {
+      ...user,
+      statistiques: {
+        candidatures,
+        favoris,
+        recommandations,
+        documents: documentsCount,
+        ...(extraAdminStats ?? {}),
+      },
+    };
+  }
+
   findAdministrateurProfileByUtilisateurId(utilisateurId: string) {
     return this.prisma.administrateurProfile.findUnique({
-      where: {
-        utilisateurId,
-      },
+      where: { utilisateurId },
     });
   }
 
+  findByIdIncludingDeleted(id: string) {
+    return this.prisma.utilisateur.findUnique({
+      where: { id },
+      include: PROFILE_INCLUDE,
+    });
+  }
+
+  // ─── UPDATE ───────────────────────────────────────────────
+
   updateMotDePasse(email: string, motDePasse: string) {
     return this.prisma.utilisateur.update({
-      where: {
-        email,
-      },
-      data: {
-        motDePasse,
-      },
+      where: { email },
+      data: { motDePasse },
     });
   }
 
   updateStatut(id: string, statut: StatutUtilisateur) {
     return this.prisma.utilisateur.update({
-      where: {
-        id,
-      },
-      data: {
-        statut,
-      },
+      where: { id },
+      data: { statut },
       include: PROFILE_INCLUDE,
     });
   }
 
-  deleteById(id: string) {
-    return this.prisma.utilisateur.delete({
-      where: {
-        id,
-      },
+  updateIdentity(id: string, data: { nom?: string; prenom?: string; telephone?: string }) {
+    return this.prisma.utilisateur.update({
+      where: { id },
+      data,
     });
+  }
+
+  updateAvatar(id: string, avatarUrl: string) {
+    return this.prisma.utilisateur.update({
+      where: { id },
+      data: { avatarUrl },
+    });
+  }
+
+  updateTelephone(id: string, telephone: string | null) {
+    return this.prisma.utilisateur.update({
+      where: { id },
+      data: { telephone },
+    });
+  }
+
+  updateEntrepreneurLogo(utilisateurId: string, logoUrl: string) {
+    return this.prisma.entrepreneurProfile.update({
+      where: { utilisateurId },
+      data: { logoUrl },
+    });
+  }
+
+  // ─── DELETE / RESTORE ──────────────────────────────────────
+
+  deleteById(id: string) {
+    return this.prisma.utilisateur.delete({ where: { id } });
   }
 
   softDelete(id: string) {
     return this.prisma.utilisateur.update({
-      where: {
-        id,
-      },
-      data: {
-        supprimeLe: new Date(),
-      },
+      where: { id },
+      data: { supprimeLe: new Date() },
     });
   }
 
   restore(id: string) {
     return this.prisma.utilisateur.update({
-      where: {
-        id,
-      },
-      data: {
-        supprimeLe: null,
-      },
+      where: { id },
+      data: { supprimeLe: null },
       include: PROFILE_INCLUDE,
     });
   }
 
+  // ─── LISTE ────────────────────────────────────────────────
+
   private buildWhere(
     filters: Pick<ListUsersFilters, 'role' | 'statut' | 'search' | 'inclureSupprimes'>,
-  ) {
+  ): Prisma.UtilisateurWhereInput {
     return {
       ...(filters.inclureSupprimes ? {} : { supprimeLe: null }),
-
       ...(filters.role ? { role: filters.role } : {}),
-
       ...(filters.statut ? { statut: filters.statut } : {}),
-
       ...(filters.search
         ? {
             email: {
               contains: filters.search,
-              mode: 'insensitive' as const,
             },
           }
         : {}),
@@ -207,23 +260,17 @@ export class UtilisateurRepository {
       this.prisma.utilisateur.findMany({
         where,
         include: PROFILE_INCLUDE,
-        orderBy: {
-          dateCreation: 'desc',
-        },
+        orderBy: { dateCreation: 'desc' },
         skip: filters.skip,
         take: filters.take,
       }),
-
-      this.prisma.utilisateur.count({
-        where,
-      }),
+      this.prisma.utilisateur.count({ where }),
     ]);
 
-    return {
-      items,
-      total,
-    };
+    return { items, total };
   }
+
+  // ─── CREATE ───────────────────────────────────────────────
 
   async createWithProfile(
     email: string,
@@ -233,7 +280,6 @@ export class UtilisateurRepository {
     input: ProfileInput,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Création de l'utilisateur
       const utilisateur = await tx.utilisateur.create({
         data: {
           email,
@@ -244,7 +290,6 @@ export class UtilisateurRepository {
         },
       });
 
-      // 2. Création du profil selon le rôle
       switch (input.role) {
         case 'ENTREPRENEUR':
           await tx.entrepreneurProfile.create({
@@ -264,11 +309,8 @@ export class UtilisateurRepository {
               utilisateurId: utilisateur.id,
               nomEntreprise: input.profile.nomEntreprise,
               logoUrl: input.profile.logoUrl,
-
               secteurs: {
-                connect: input.profile.secteurIds.map((id) => ({
-                  id,
-                })),
+                connect: input.profile.secteurIds.map((id) => ({ id })),
               },
             },
           });
@@ -281,11 +323,8 @@ export class UtilisateurRepository {
               nomOrganisation: input.profile.nomOrganisation,
               mission: input.profile.mission,
               logoUrl: input.profile.logoUrl,
-
               domainesIntervention: {
-                connect: input.profile.domaineInterventionIds.map((id) => ({
-                  id,
-                })),
+                connect: input.profile.domaineInterventionIds.map((id) => ({ id })),
               },
             },
           });
@@ -304,11 +343,8 @@ export class UtilisateurRepository {
           throw new Error('Rôle utilisateur invalide');
       }
 
-      // 3. Récupération de l'utilisateur avec son profil
       const utilisateurComplet = await tx.utilisateur.findUnique({
-        where: {
-          id: utilisateur.id,
-        },
+        where: { id: utilisateur.id },
         include: PROFILE_INCLUDE,
       });
 
@@ -320,14 +356,7 @@ export class UtilisateurRepository {
     });
   }
 
-  findByIdIncludingDeleted(id: string) {
-    return this.prisma.utilisateur.findUnique({
-      where: {
-        id,
-      },
-      include: PROFILE_INCLUDE,
-    });
-  }
+  // ─── UPDATE PROFILS ───────────────────────────────────────
 
   updateEntrepreneurProfile(
     utilisateurId: string,
@@ -339,14 +368,9 @@ export class UtilisateurRepository {
     }>,
   ) {
     return this.prisma.entrepreneurProfile.update({
-      where: {
-        utilisateurId,
-      },
+      where: { utilisateurId },
       data,
-      include: {
-        secteur: true,
-        pays: true,
-      },
+      include: { secteur: true, pays: true },
     });
   }
 
@@ -361,25 +385,18 @@ export class UtilisateurRepository {
     const { secteurIds, ...rest } = data;
 
     return this.prisma.pmeProfile.update({
-      where: {
-        utilisateurId,
-      },
+      where: { utilisateurId },
       data: {
         ...rest,
-
         ...(secteurIds
           ? {
               secteurs: {
-                set: secteurIds.map((id) => ({
-                  id,
-                })),
+                set: secteurIds.map((id) => ({ id })),
               },
             }
           : {}),
       },
-      include: {
-        secteurs: true,
-      },
+      include: { secteurs: true },
     });
   }
 
@@ -395,40 +412,18 @@ export class UtilisateurRepository {
     const { domaineInterventionIds, ...rest } = data;
 
     return this.prisma.ongProfile.update({
-      where: {
-        utilisateurId,
-      },
+      where: { utilisateurId },
       data: {
         ...rest,
-
         ...(domaineInterventionIds
           ? {
               domainesIntervention: {
-                set: domaineInterventionIds.map((id) => ({
-                  id,
-                })),
+                set: domaineInterventionIds.map((id) => ({ id })),
               },
             }
           : {}),
       },
-      include: {
-        domainesIntervention: true,
-      },
-    });
-  }
-
-  updateIdentity(
-    id: string,
-    data: {
-      nom?: string;
-      prenom?: string;
-    },
-  ) {
-    return this.prisma.utilisateur.update({
-      where: {
-        id,
-      },
-      data,
+      include: { domainesIntervention: true },
     });
   }
 }
