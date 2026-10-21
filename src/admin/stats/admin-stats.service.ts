@@ -1,4 +1,4 @@
-// src/admin/admin-stats.service.ts (ou src/admin/stats/admin-stats.service.ts selon ton arborescence)
+// src/admin/admin-stats.service.ts
 import { Injectable } from '@nestjs/common';
 import { StatsRepository } from '../repositories/stats.repository';
 
@@ -19,6 +19,9 @@ export class AdminStatsService {
   async getOverview() {
     const raw = await this.statsRepository.getOverview();
 
+    const actifs = raw.emetteursParActif.find((r) => r.actif === true)?._count ?? 0;
+    const inactifs = raw.emetteursParActif.find((r) => r.actif === false)?._count ?? 0;
+
     return {
       utilisateurs: {
         total: raw.totalUtilisateurs,
@@ -30,7 +33,8 @@ export class AdminStatsService {
       },
       emetteurs: {
         total: raw.totalEmetteurs,
-        parStatut: this.toCountMap(raw.emetteursParStatut, 'statut'),
+        actifs,
+        inactifs,
       },
       opportunites: {
         total: raw.totalOpportunites,

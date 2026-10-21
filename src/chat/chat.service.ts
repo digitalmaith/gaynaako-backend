@@ -45,6 +45,8 @@ export class ChatService {
       message: dto.message,
       session_id: dto.session_id,
       user_id: userId,
+      // ⬇️ AJOUTER — transmettre le contexte au chatbot
+      ...(dto.context && Object.keys(dto.context).length > 0 ? { context: dto.context } : {}),
     });
   }
 

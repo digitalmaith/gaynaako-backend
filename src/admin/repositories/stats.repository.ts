@@ -18,7 +18,7 @@ export class StatsRepository {
       inscriptions7j,
       inscriptions30j,
       totalEmetteurs,
-      emetteursParStatut,
+      emetteursParActif,
       totalOpportunites,
       totalCandidatures,
       candidaturesParStatut,
@@ -45,13 +45,13 @@ export class StatsRepository {
       this.prisma.utilisateur.count({
         where: { supprimeLe: null, dateCreation: { gte: trenteJoursAvant } },
       }),
-      this.prisma.emetteur.count(),
-      this.prisma.emetteur.groupBy({
-        by: ['statut'],
+      this.prisma.sourceScraping.count(), // <-- SourceScraping
+      this.prisma.sourceScraping.groupBy({
+        by: ['actif'],
         _count: true,
-        orderBy: { statut: 'asc' },
+        orderBy: { actif: 'asc' },
       }),
-      this.prisma.opportunite.count(),
+      this.prisma.opportunityProcessed.count(),
       this.prisma.candidature.count(),
       this.prisma.candidature.groupBy({
         by: ['statut'],
@@ -70,7 +70,7 @@ export class StatsRepository {
       inscriptions7j,
       inscriptions30j,
       totalEmetteurs,
-      emetteursParStatut,
+      emetteursParActif,
       totalOpportunites,
       totalCandidatures,
       candidaturesParStatut,
