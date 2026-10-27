@@ -16,6 +16,7 @@ import { AbonnementsModule } from './abonnements/abonnements.module';
 import { ChatModule } from './chat/chat.module';
 import { RecommandationsModule } from './recommandations/recommandations.module';
 import { PipelineModule } from './admin/pipeline/pipeline.module';
+import { StrategyModule } from './strategy/strategy.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { PipelineModule } from './admin/pipeline/pipeline.module';
     ChatModule,
     RecommandationsModule,
     PipelineModule,
+    StrategyModule,
   ],
   providers: [
     {

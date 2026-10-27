@@ -1,8 +1,10 @@
-// src/opportunites/controller/opportunites-ia.controller.ts
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { OpportunitesIaService } from '../opportunites-ia.service';
 import { ListOpportunitesIaQueryDto } from '../dto/list-opportunites-ia-query.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
 
 @ApiTags('opportunites-ia')
 @Controller('opportunites-ia')
@@ -37,8 +39,10 @@ export class OpportunitesIaController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: "Détail d'une opportunité IA" })
-  getById(@Param('id') id: string) {
-    return this.opportunitesIaService.getById(id);
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Détail d'une opportunité IA avec score de matching" })
+  getById(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.opportunitesIaService.getByIdWithMatch(id, user.sub);
   }
 }
